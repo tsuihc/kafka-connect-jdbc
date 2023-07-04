@@ -199,7 +199,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
       );
     }
     if (config instanceof JdbcSourceConnectorConfig) {
-      mapNumerics = ((JdbcSourceConnectorConfig)config).numericMapping();
+      mapNumerics = ((JdbcSourceConnectorConfig) config).numericMapping();
       batchMaxRows = config.getInt(JdbcSourceConnectorConfig.BATCH_MAX_ROWS_CONFIG);
     } else {
       mapNumerics = NumericMapping.NONE;
@@ -231,7 +231,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
   }
 
   @Override
-  public Connection getConnection() throws SQLException {
+  public Connection getConnection()
+  throws SQLException {
     // These config names are the same for both source and sink configs ...
     String username = config.getString(JdbcSourceConnectorConfig.CONNECTION_USER_CONFIG);
     Password dbPassword = config.getPassword(JdbcSourceConnectorConfig.CONNECTION_PASSWORD_CONFIG);
@@ -271,7 +272,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
   public boolean isConnectionValid(
       Connection connection,
       int timeout
-  ) throws SQLException {
+  )
+  throws SQLException {
     if (jdbcDriverInfo().jdbcMajorVersion() >= 4) {
       return connection.isValid(timeout);
     }
@@ -317,7 +319,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     return jdbcDriverInfo;
   }
 
-  protected JdbcDriverInfo createJdbcDriverInfo(Connection connection) throws SQLException {
+  protected JdbcDriverInfo createJdbcDriverInfo(Connection connection)
+  throws SQLException {
     DatabaseMetaData metadata = connection.getMetaData();
     return new JdbcDriverInfo(
         metadata.getJDBCMajorVersion(),
@@ -345,13 +348,13 @@ public class GenericDatabaseDialect implements DatabaseDialect {
    *                   DriverManager#getConnection(String, Properties) getConnection(...) method};
    *                   never null
    * @return the updated connection properties, or {@code properties} if they are not modified or
-   *     should be returned; never null
+   * should be returned; never null
    */
   protected Properties addConnectionProperties(Properties properties) {
     // Get the set of config keys that are known to the connector
     Set<String> configKeys = config.values().keySet();
     // Add any configuration property that begins with 'connection.` and that is not known
-    config.originalsWithPrefix(JdbcSourceConnectorConfig.CONNECTION_PREFIX).forEach((k,v) -> {
+    config.originalsWithPrefix(JdbcSourceConnectorConfig.CONNECTION_PREFIX).forEach((k, v) -> {
       if (!configKeys.contains(JdbcSourceConnectorConfig.CONNECTION_PREFIX + k)) {
         properties.put(k, v);
       }
@@ -363,7 +366,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
   public PreparedStatement createPreparedStatement(
       Connection db,
       String query
-  ) throws SQLException {
+  )
+  throws SQLException {
     glog.trace("Creating a PreparedStatement '{}'", query);
     PreparedStatement stmt = db.prepareStatement(query);
     initializePreparedStatement(stmt);
@@ -384,7 +388,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
    * @param stmt the prepared statement; never null
    * @throws SQLException the error that might result from initialization
    */
-  protected void initializePreparedStatement(PreparedStatement stmt) throws SQLException {
+  protected void initializePreparedStatement(PreparedStatement stmt)
+  throws SQLException {
     if (batchMaxRows > 0) {
       stmt.setFetchSize(batchMaxRows);
     }
@@ -419,7 +424,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
   }
 
   @Override
-  public List<TableId> tableIds(Connection conn) throws SQLException {
+  public List<TableId> tableIds(Connection conn)
+  throws SQLException {
     DatabaseMetaData metadata = conn.getMetaData();
     String[] tableTypes = tableTypes(metadata, this.tableTypes);
     String tableTypeDisplay = displayableTableTypes(tableTypes, ", ");
@@ -468,13 +474,14 @@ public class GenericDatabaseDialect implements DatabaseDialect {
    * @param metadata the database metadata; may not be null but may be empty if no table types
    * @param types    the case-independent table types that are desired
    * @return the array of table types take directly from the list of available types returned by the
-   *     JDBC driver; never null
+   * JDBC driver; never null
    * @throws SQLException if there is an error with the database connection
    */
   protected String[] tableTypes(
       DatabaseMetaData metadata,
       Set<String> types
-  ) throws SQLException {
+  )
+  throws SQLException {
     glog.debug("Using {} dialect to check support for {}", this, types);
     // Compute the uppercase form of the desired types ...
     Set<String> uppercaseTypes = new HashSet<>();
@@ -548,7 +555,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
   public Timestamp currentTimeOnDB(
       Connection conn,
       Calendar cal
-  ) throws SQLException, ConnectException {
+  )
+  throws SQLException, ConnectException {
     String query = currentTimestampDatabaseQuery();
     assert query != null;
     assert !query.isEmpty();
@@ -582,7 +590,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
   public boolean tableExists(
       Connection connection,
       TableId tableId
-  ) throws SQLException {
+  )
+  throws SQLException {
     DatabaseMetaData metadata = connection.getMetaData();
     String[] tableTypes = tableTypes(metadata, this.tableTypes);
     String tableTypeDisplay = displayableTableTypes(tableTypes, "/");
@@ -606,15 +615,15 @@ public class GenericDatabaseDialect implements DatabaseDialect {
   }
 
   public void setConnectionIsolationMode(
-          Connection connection,
-          TransactionIsolationMode transactionIsolationMode
+      Connection connection,
+      TransactionIsolationMode transactionIsolationMode
   ) {
     if (transactionIsolationMode
-            == TransactionIsolationMode.DEFAULT) {
+        == TransactionIsolationMode.DEFAULT) {
       return;
     }
     int isolationMode = TransactionIsolationMode.get(
-            transactionIsolationMode
+        transactionIsolationMode
     );
     try {
       DatabaseMetaData metadata = connection.getMetaData();
@@ -624,12 +633,13 @@ public class GenericDatabaseDialect implements DatabaseDialect {
         throw new ConfigException("Transaction Isolation level not supported by database");
       }
     } catch (SQLException | ConfigException ex) {
-      log.warn("Unable to set transaction.isolation.mode: " +  transactionIsolationMode.name()
-              +  ". No transaction isolation mode will be set for the queries: " + ex.getMessage());
+      log.warn("Unable to set transaction.isolation.mode: " + transactionIsolationMode.name()
+                   + ". No transaction isolation mode will be set for the queries: " + ex.getMessage());
     }
   }
 
-  protected String displayableTableTypes(String[] types, String delim) {
+  protected String displayableTableTypes(String[] types,
+                                         String delim) {
     return Arrays.stream(types).sorted().collect(Collectors.joining(delim));
   }
 
@@ -638,12 +648,13 @@ public class GenericDatabaseDialect implements DatabaseDialect {
       Connection connection,
       String tablePattern,
       String columnPattern
-  ) throws SQLException {
+  )
+  throws SQLException {
     //if the table pattern is fqn, then just use the actual table name
     TableId tableId = parseTableIdentifier(tablePattern);
     String catalog = tableId.catalogName() != null ? tableId.catalogName() : catalogPattern;
     String schema = tableId.schemaName() != null ? tableId.schemaName() : schemaPattern;
-    return describeColumns(connection, catalog , schema, tableId.tableName(), columnPattern);
+    return describeColumns(connection, catalog, schema, tableId.tableName(), columnPattern);
   }
 
   @Override
@@ -653,7 +664,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
       String schemaPattern,
       String tablePattern,
       String columnPattern
-  ) throws SQLException {
+  )
+  throws SQLException {
     glog.debug(
         "Querying {} dialect column metadata for catalog:{} schema:{} table:{}",
         this,
@@ -748,8 +760,9 @@ public class GenericDatabaseDialect implements DatabaseDialect {
   }
 
   @Override
-  public Map<ColumnId, ColumnDefinition> describeColumns(ResultSetMetaData rsMetadata) throws
-      SQLException {
+  public Map<ColumnId, ColumnDefinition> describeColumns(ResultSetMetaData rsMetadata)
+  throws
+  SQLException {
     Map<ColumnId, ColumnDefinition> result = new LinkedHashMap<>();
     for (int i = 1; i <= rsMetadata.getColumnCount(); ++i) {
       ColumnDefinition defn = describeColumn(rsMetadata, i);
@@ -769,7 +782,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
   protected ColumnDefinition describeColumn(
       ResultSetMetaData rsMetadata,
       int column
-  ) throws SQLException {
+  )
+  throws SQLException {
     String catalog = rsMetadata.getCatalogName(column);
     String schema = rsMetadata.getSchemaName(column);
     String tableName = rsMetadata.getTableName(column);
@@ -822,7 +836,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
       String catalogPattern,
       String schemaPattern,
       String tablePattern
-  ) throws SQLException {
+  )
+  throws SQLException {
 
     // Get the primary keys of the table(s) ...
     final Set<ColumnId> pkColumns = new HashSet<>();
@@ -845,7 +860,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
   public Map<ColumnId, ColumnDefinition> describeColumnsByQuerying(
       Connection db,
       TableId tableId
-  ) throws SQLException {
+  )
+  throws SQLException {
     String queryStr = "SELECT * FROM {} LIMIT 1";
     String quotedName = expressionBuilder().append(tableId).toString();
     try (PreparedStatement stmt = db.prepareStatement(queryStr)) {
@@ -861,7 +877,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
   public TableDefinition describeTable(
       Connection connection,
       TableId tableId
-  ) throws SQLException {
+  )
+  throws SQLException {
     Map<ColumnId, ColumnDefinition> columnDefns = describeColumns(connection, tableId.catalogName(),
                                                                   tableId.schemaName(),
                                                                   tableId.tableName(), null
@@ -876,7 +893,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
   protected TableType tableTypeFor(
       Connection connection,
       TableId tableId
-  ) throws SQLException {
+  )
+  throws SQLException {
     DatabaseMetaData metadata = connection.getMetaData();
     String[] tableTypes = tableTypes(metadata, this.tableTypes);
     String tableTypeDisplay = displayableTableTypes(tableTypes, "/");
@@ -1211,7 +1229,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     return fieldName;
   }
 
-  private Schema integerSchema(boolean optional, int precision) {
+  private Schema integerSchema(boolean optional,
+                               int precision) {
     Schema schema;
     if (precision > 9) {
       schema = (optional) ? Schema.OPTIONAL_INT64_SCHEMA : Schema.INT64_SCHEMA;
@@ -1229,7 +1248,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
   public void applyDdlStatements(
       Connection connection,
       List<String> statements
-  ) throws SQLException {
+  )
+  throws SQLException {
     try (Statement statement = connection.createStatement()) {
       for (String ddlStatement : statements) {
         statement.executeUpdate(ddlStatement);
@@ -1246,6 +1266,28 @@ public class GenericDatabaseDialect implements DatabaseDialect {
         throw e;
       }
     }
+  }
+
+  @Override
+  public String buildSelectStatement(TableId table,
+                                     Collection<ColumnId> keyColumns,
+                                     Collection<ColumnId> nonKeyColumns) {
+    ExpressionBuilder builder = expressionBuilder();
+    builder.append("SELECT ");
+    builder.append("(");
+    builder.appendList()
+           .delimitedBy(",")
+           .transformedBy(ExpressionBuilder.columnNames())
+           .of(keyColumns, nonKeyColumns);
+    builder.append(") ");
+    builder.append("FROM ");
+    builder.append(table);
+    builder.append(" WHERE ");
+    builder.appendList()
+           .delimitedBy(" AND ")
+           .transformedBy(ExpressionBuilder.columnNamesWith(" = ?"))
+           .of(keyColumns);
+    return builder.toString();
   }
 
   @Override
@@ -1409,7 +1451,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
       // Date is day + month + year
       case Types.DATE: {
         return rs -> rs.getDate(col,
-            DateTimeUtils.getTimeZoneCalendar(TimeZone.getTimeZone(ZoneOffset.UTC)));
+                                DateTimeUtils.getTimeZoneCalendar(TimeZone.getTimeZone(ZoneOffset.UTC)));
       }
 
       // Time is a time of day -- hour, minute, seconds, nanoseconds
@@ -1526,7 +1568,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
    * @param blob the Blob; never null
    * @throws SQLException if there is a problem calling free()
    */
-  protected void free(Blob blob) throws SQLException {
+  protected void free(Blob blob)
+  throws SQLException {
     blob.free();
   }
 
@@ -1536,7 +1579,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
    * @param clob the Clob; never null
    * @throws SQLException if there is a problem calling free()
    */
-  protected void free(Clob clob) throws SQLException {
+  protected void free(Clob clob)
+  throws SQLException {
     clob.free();
   }
 
@@ -1607,9 +1651,9 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     if (!keyColumns.isEmpty()) {
       builder.append(" WHERE ");
       builder.appendList()
-          .delimitedBy(" AND ")
-          .transformedBy(ExpressionBuilder.columnNamesWith(" = ?"))
-          .of(keyColumns);
+             .delimitedBy(" AND ")
+             .transformedBy(ExpressionBuilder.columnNamesWith(" = ?"))
+             .of(keyColumns);
     }
     return builder.toString();
   }
@@ -1640,7 +1684,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
       int index,
       Schema schema,
       Object value
-  ) throws SQLException {
+  )
+  throws SQLException {
     if (value == null) {
       Integer type = getSqlTypeForSchema(schema);
       if (type != null) {
@@ -1676,7 +1721,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
       int index,
       Schema schema,
       Object value
-  ) throws SQLException {
+  )
+  throws SQLException {
     switch (schema.type()) {
       case INT8:
         statement.setByte(index, (Byte) value);
@@ -1724,7 +1770,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
       int index,
       Schema schema,
       Object value
-  ) throws SQLException {
+  )
+  throws SQLException {
     if (schema.name() != null) {
       switch (schema.name()) {
         case Date.LOGICAL_NAME:
@@ -1830,9 +1877,11 @@ public class GenericDatabaseDialect implements DatabaseDialect {
 
   @Override
   public void validateSpecificColumnTypes(
-          ResultSetMetaData rsMetadata,
-          List<ColumnId> columns
-  ) throws ConnectException { }
+      ResultSetMetaData rsMetadata,
+      List<ColumnId> columns
+  )
+  throws ConnectException {
+  }
 
   protected List<String> extractPrimaryKeyFieldNames(Collection<SinkRecordField> fields) {
     final List<String> pks = new ArrayList<>();
