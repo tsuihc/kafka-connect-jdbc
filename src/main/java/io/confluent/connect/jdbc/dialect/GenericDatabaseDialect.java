@@ -1270,25 +1270,32 @@ public class GenericDatabaseDialect implements DatabaseDialect {
 
   @Override
   public String buildSelectStatement(TableId table,
-                                     Collection<ColumnId> keyColumns,
-                                     Collection<ColumnId> nonKeyColumns) {
-    ExpressionBuilder builder = expressionBuilder();
-    builder.append("SELECT ");
-    builder.append("(");
-    builder.appendList()
-           .delimitedBy(",")
-           .transformedBy(ExpressionBuilder.columnNames())
-           .of(keyColumns, nonKeyColumns);
-    builder.append(") ");
-    builder.append("FROM ");
-    builder.append(table);
-    builder.append(" WHERE ");
-    builder.appendList()
-           .delimitedBy(" AND ")
-           .transformedBy(ExpressionBuilder.columnNamesWith(" = ?"))
-           .of(keyColumns);
-    return builder.toString();
+                                     List<String> fields,
+                                     Schema keySchema) {
+    return null;
   }
+
+  //  @Override
+//  public String buildSelectStatement(TableId table,
+//                                     Collection<ColumnId> keyColumns,
+//                                     Collection<ColumnId> nonKeyColumns) {
+//    ExpressionBuilder builder = expressionBuilder();
+//    builder.append("SELECT ");
+//    builder.append("(");
+//    builder.appendList()
+//           .delimitedBy(",")
+//           .transformedBy(ExpressionBuilder.columnNames())
+//           .of(keyColumns, nonKeyColumns);
+//    builder.append(") ");
+//    builder.append("FROM ");
+//    builder.append(table);
+//    builder.append(" WHERE ");
+//    builder.appendList()
+//           .delimitedBy(" AND ")
+//           .transformedBy(ExpressionBuilder.columnNamesWith(" = ?"))
+//           .of(keyColumns);
+//    return builder.toString();
+//  }
 
   @Override
   public ColumnConverter createColumnConverter(

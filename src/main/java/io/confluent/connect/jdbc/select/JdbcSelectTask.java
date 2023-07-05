@@ -6,13 +6,18 @@ import io.confluent.connect.jdbc.sink.JdbcSinkTask;
 import io.confluent.connect.jdbc.sink.metadata.FieldsMetadata;
 import io.confluent.connect.jdbc.util.CachedConnectionProvider;
 import io.confluent.connect.jdbc.util.Version;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.select.SelectTask;
 import org.apache.kafka.connect.sink.SinkRecord;
+import org.apache.kafka.connect.source.SourceRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.PreparedStatement;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 
 public class JdbcSelectTask extends SelectTask {
   public static final Logger log = LoggerFactory.getLogger(JdbcSelectTask.class);
@@ -21,7 +26,8 @@ public class JdbcSelectTask extends SelectTask {
   JdbcSelectConfig config;
   CachedConnectionProvider cachedConnectionProvider;
 
-  private FieldsMetadata fieldsMetadata;
+  private Schema keySchema;
+  private PreparedStatement selectStatement;
 
   @Override
   public void start(Map<String, String> props) {
@@ -35,23 +41,24 @@ public class JdbcSelectTask extends SelectTask {
   }
 
   @Override
-  public void put(Collection<SinkRecord> records) {
-    if (records.isEmpty()) {
-      return;
+  protected SourceRecord select(SchemaAndValue keys)
+  throws Exception {
+    boolean schemaChanged = false;
+    if (!Objects.equals(keySchema, keys.schema())) {
+      keySchema = keys.schema();
+      schemaChanged = true;
     }
-    final SinkRecord first = records.iterator().next();
-    final int recordsCount = records.size();
-    log.debug("Received {} records. First record kafka coordinates:({}-{}-{}).",
-              recordsCount,
-              first.topic(),
-              first.kafkaPartition(),
-              first.kafkaOffset()
-    );
+    if (schemaChanged || selectStatement == null) {
+      // re-initialize everything
+      dialect.buildSelectStatement()
+    }
+
+
+    return null;
   }
 
   @Override
   public void stop() {
-
   }
 
   @Override

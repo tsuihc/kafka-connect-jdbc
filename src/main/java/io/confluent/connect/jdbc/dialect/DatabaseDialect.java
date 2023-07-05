@@ -327,16 +327,16 @@ public interface DatabaseDialect extends ConnectionProvider {
    * Build the SELECT prepared statement expression for the given table and its columns.
    *
    * @param table         the identifier of the table; may not be null
-   * @param keyColumns    the identifiers of the columns in the primary/unique key; may not be null
+   * @param fields        the identifiers of the columns in the primary/unique key; may not be null
    *                      but may be empty
-   * @param nonKeyColumns the identifiers of the other columns in the table; may not be null but may
+   * @param keySchema     the identifiers of the other columns in the table; may not be null but may
    *                      be empty
    * @return the SELECT statement; may not be null
    */
   String buildSelectStatement(
       TableId table,
-      Collection<ColumnId> keyColumns,
-      Collection<ColumnId> nonKeyColumns
+      List<String> fields,
+      Schema keySchema
   );
 
   /**
