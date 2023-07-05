@@ -39,7 +39,17 @@ public class JdbcSelectConfig extends SelectConfig {
           + "specific dialect. All properly-packaged dialects in the JDBC connector plugin "
           + "can be used.";
 
+  public static final String TABLE_NAME_FORMAT = "table.name.format";
+  private static final String TABLE_NAME_FORMAT_DEFAULT = "${topic}";
+  private static final String TABLE_NAME_FORMAT_DOC =
+      "A format string for the destination table name, which may contain '${topic}' as a "
+          + "placeholder for the originating topic name.\n"
+          + "For example, ``kafka_${topic}`` for the topic 'orders' will map to the table name "
+          + "'kafka_orders'.";
+  private static final String TABLE_NAME_FORMAT_DISPLAY = "Table Name Format";
+
   private static final String CONNECTION_GROUP = "Connection";
+  private static final String DATA_MAPPING_GROUP = "DataMapping";
 
   public static final ConfigDef CONFIG_DEF = SelectConfig.CONFIG_DEF
       // Connection
@@ -88,12 +98,28 @@ public class JdbcSelectConfig extends SelectConfig {
           ConfigDef.Width.LONG,
           DIALECT_NAME_DISPLAY,
           DatabaseDialectRecommender.INSTANCE
+      )
+      // DATA MAPPING
+      // Data Mapping
+      .define(
+          TABLE_NAME_FORMAT,
+          ConfigDef.Type.STRING,
+          TABLE_NAME_FORMAT_DEFAULT,
+          new ConfigDef.NonEmptyString(),
+          ConfigDef.Importance.MEDIUM,
+          TABLE_NAME_FORMAT_DOC,
+          DATA_MAPPING_GROUP,
+          1,
+          ConfigDef.Width.LONG,
+          TABLE_NAME_FORMAT_DISPLAY
       );
+
 
   public final String connectionUrl;
   public final String connectionUser;
   public final String connectionPassword;
   public final String dialectName;
+  public final String tableNameFormat;
 
   public JdbcSelectConfig(Map<?, ?> props) {
     super(CONFIG_DEF, props);
@@ -101,6 +127,7 @@ public class JdbcSelectConfig extends SelectConfig {
     connectionUser = getString(CONNECTION_USER);
     connectionPassword = getPasswordValue(CONNECTION_PASSWORD);
     dialectName = getString(DIALECT_NAME_CONFIG);
+    tableNameFormat = getString(TABLE_NAME_FORMAT).trim();
   }
 
   private String getPasswordValue(String key) {
