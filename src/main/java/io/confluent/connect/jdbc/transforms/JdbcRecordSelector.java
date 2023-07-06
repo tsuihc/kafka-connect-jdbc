@@ -1,4 +1,5 @@
-package io.confluent.connect.jdbc.select;
+
+package io.confluent.connect.jdbc.transforms;
 
 import io.confluent.connect.jdbc.dialect.DatabaseDialect;
 import io.confluent.connect.jdbc.sink.TableAlterOrCreateException;

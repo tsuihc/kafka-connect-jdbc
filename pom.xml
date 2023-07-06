@@ -29,6 +29,10 @@
             <artifactId>kafka-connect-select</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.oppo.dts</groupId>
+            <artifactId>kafka-connect-transforms-select</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-api</artifactId>
             <scope>provided</scope>
@@ -116,6 +120,12 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>mysql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Drivers for test -->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

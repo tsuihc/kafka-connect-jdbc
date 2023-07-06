@@ -18,6 +18,7 @@ package io.confluent.connect.jdbc.dialect;
 import java.time.ZoneOffset;
 import java.util.TimeZone;
 
+import io.confluent.connect.jdbc.select.JdbcSelectConfig;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.types.Password;
@@ -177,7 +178,16 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     this.defaultIdentifierRules = defaultIdentifierRules;
     this.jdbcUrl = config.getString(JdbcSourceConnectorConfig.CONNECTION_URL_CONFIG);
     this.jdbcUrlInfo = DatabaseDialects.extractJdbcUrlInfo(jdbcUrl);
-    if (config instanceof JdbcSinkConfig) {
+
+    if (config instanceof JdbcSelectConfig) {
+      JdbcSelectConfig selectConfig = (JdbcSelectConfig) config;
+      catalogPattern = JdbcSourceTaskConfig.CATALOG_PATTERN_DEFAULT;
+      schemaPattern = JdbcSourceTaskConfig.SCHEMA_PATTERN_DEFAULT;
+      tableTypes = Set.of(JdbcSourceTaskConfig.TABLE_TYPE_DEFAULT);
+      quoteSqlIdentifiers = QuoteMethod.get(
+        JdbcSourceConnectorConfig.QUOTE_SQL_IDENTIFIERS_DEFAULT
+      );
+    } else if (config instanceof JdbcSinkConfig) {
       JdbcSinkConfig sinkConfig = (JdbcSinkConfig) config;
       catalogPattern = JdbcSourceTaskConfig.CATALOG_PATTERN_DEFAULT;
       schemaPattern = JdbcSourceTaskConfig.SCHEMA_PATTERN_DEFAULT;

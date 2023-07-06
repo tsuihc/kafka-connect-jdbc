@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.util.HashMap;
 import java.util.Map;
 
-public class JdbcSelectConfigTest {
+public class JdbcSelectTransformConfigTest {
 
   private Map<String, String> props = new HashMap<>();
   private JdbcSelectConfig config;
