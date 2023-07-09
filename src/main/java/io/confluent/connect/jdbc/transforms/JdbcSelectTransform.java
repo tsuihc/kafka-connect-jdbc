@@ -2,8 +2,7 @@ package io.confluent.connect.jdbc.transforms;
 
 import io.confluent.connect.jdbc.dialect.DatabaseDialect;
 import io.confluent.connect.jdbc.dialect.DatabaseDialects;
-import io.confluent.connect.jdbc.select.JdbcRecordSelector;
-import io.confluent.connect.jdbc.select.JdbcSelectConfig;
+
 import io.confluent.connect.jdbc.util.CachedConnectionProvider;
 import io.confluent.connect.jdbc.util.TableId;
 import org.apache.kafka.common.config.ConfigDef;
@@ -28,7 +27,7 @@ public class JdbcSelectTransform extends SelectTransform {
 
   @Override
   public ConfigDef config() {
-    return JdbcSelectConfig.CONFIG_DEF;
+    return JdbcSelectTransformConfig.CONFIG_DEF;
   }
 
   @Override

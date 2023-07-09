@@ -1,5 +1,6 @@
 package io.confluent.connect.jdbc.select;
 
+import io.confluent.connect.jdbc.transforms.JdbcSelectTransformConfig;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -12,7 +13,7 @@ import java.util.Map;
 public class JdbcSelectTransformConfigTest {
 
   private Map<String, String> props = new HashMap<>();
-  private JdbcSelectConfig config;
+  private JdbcSelectTransformConfig config;
 
   @BeforeEach
   public void beforeEach() {
@@ -29,7 +30,7 @@ public class JdbcSelectTransformConfigTest {
   @Test
   public void shouldFailToCreateConfigWithoutConnectionUrl() {
     Assertions.assertThrows(ConfigException.class, () -> {
-      props.remove(JdbcSelectConfig.CONNECTION_URL);
+      props.remove(JdbcSelectTransformConfig.CONNECTION_URL);
       createConfig();
     });
   }
@@ -37,13 +38,13 @@ public class JdbcSelectTransformConfigTest {
   @Test
   public void shouldFailToCreateConfigWithEmptyTableNameFormat() {
     Assertions.assertThrows(ConfigException.class, () -> {
-      props.put(JdbcSelectConfig.TABLE_NAME_FORMAT, "");
+      props.put(JdbcSelectTransformConfig.TABLE_NAME_FORMAT, "");
       createConfig();
     });
   }
 
   protected void createConfig() {
-    config = new JdbcSelectConfig(props);
+    config = new JdbcSelectTransformConfig(props);
   }
 
 }

@@ -50,7 +50,7 @@ public class JdbcSelectTransformConfig extends SelectTransformConfig {
   private static final String CONNECTION_GROUP = "Connection";
   private static final String DATA_MAPPING_GROUP = "DataMapping";
 
-  public static final ConfigDef CONFIG_DEF = org.apache.kafka.connect.select.SelectConfig.CONFIG_DEF
+  public static final ConfigDef CONFIG_DEF = org.apache.kafka.connect.transforms.select.SelectTransformConfig.CONFIG_DEF
     // Connection
     .define(
       CONNECTION_URL,
@@ -98,7 +98,6 @@ public class JdbcSelectTransformConfig extends SelectTransformConfig {
       DIALECT_NAME_DISPLAY,
       DatabaseDialectRecommender.INSTANCE
     )
-    // DATA MAPPING
     // Data Mapping
     .define(
       TABLE_NAME_FORMAT,
