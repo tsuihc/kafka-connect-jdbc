@@ -40,7 +40,7 @@ public class JdbcRecordSelector {
   private PreparedStatement selectStatement;
   private TableDefinition tableDef;
   private SchemaMapping schemaMapping;
-  private Transformation<SourceRecord> transformation;
+  private Transformation<SourceRecord> valueToKeyTransform;
 
   public JdbcRecordSelector(
     TableId tableId,
@@ -64,12 +64,12 @@ public class JdbcRecordSelector {
     if (schemaChanged || selectStatement == null) {
       // re-initialize everything
       List<ColumnId> keyColumns = getKeyColumns(keySchema);
-      if (transformation == null) {
-        transformation = new ValueToKey<>();
+      if (valueToKeyTransform == null) {
+        valueToKeyTransform = new ValueToKey<>();
       }
       Map<String, Object> transformationConfig = new HashMap<>();
       transformationConfig.put(ValueToKey.FIELDS_CONFIG, getKeyNames(keySchema));
-      transformation.configure(transformationConfig);
+      valueToKeyTransform.configure(transformationConfig);
 
       String sql = dialect.buildSelectStatement(tableId, fields, keyColumns);
       log.debug("TableId: {}, SQL: {}, Keys: {}", tableId, sql, keys);
@@ -80,7 +80,8 @@ public class JdbcRecordSelector {
     }
     bindKeyFields(keys);
     SourceRecord record = executeSelect();
-    return transformation.apply(record);
+    // if the record is not null, extract value to key by transform
+    return record == null ? null : valueToKeyTransform.apply(record);
   }
 
   private SourceRecord executeSelect()
@@ -131,8 +132,7 @@ public class JdbcRecordSelector {
 
   private void close()
   throws SQLException {
-    log.debug(
-      "Closing JdbcRecordSelector with selectPreparedStatement: {}", selectStatement);
+    log.debug("Closing JdbcRecordSelector with selectPreparedStatement: {}", selectStatement);
     if (selectStatement != null) {
       selectStatement.close();
       selectStatement = null;
