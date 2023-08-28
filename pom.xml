@@ -27,6 +27,7 @@
         <dependency>
             <groupId>com.oppo.dts</groupId>
             <artifactId>kafka-connect-transforms-select</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
