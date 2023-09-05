@@ -124,6 +124,13 @@ public class ExpressionBuilder {
     ListBuilder<T> delimitedBy(String delimiter);
 
     /**
+     * Define whether to use bracket to wrap list element
+     *
+     * @return this builder to enable methods to be chained; never null
+     */
+    ListBuilder<T> bracketed();
+
+    /**
      * Define a {@link Transform} that should be applied to every item in the list as it is
      * appended.
      *
@@ -567,6 +574,7 @@ public class ExpressionBuilder {
   protected class BasicListBuilder<T> implements ListBuilder<T> {
     private final String delimiter;
     private final Transform<T> transform;
+    private final boolean bracketed;
     private boolean first = true;
 
     BasicListBuilder() {
@@ -574,22 +582,35 @@ public class ExpressionBuilder {
     }
 
     BasicListBuilder(String delimiter, Transform<T> transform) {
+      this(delimiter, transform, false);
+    }
+
+    BasicListBuilder(String delimiter, Transform<T> transform, boolean bracketed) {
       this.delimiter = delimiter;
       this.transform = transform != null ? transform : ExpressionBuilder::append;
+      this.bracketed = bracketed;
     }
 
     @Override
     public ListBuilder<T> delimitedBy(String delimiter) {
-      return new BasicListBuilder<T>(delimiter, transform);
+      return new BasicListBuilder<T>(delimiter, transform, bracketed);
+    }
+
+    @Override
+    public ListBuilder<T> bracketed() {
+      return new BasicListBuilder<T>(delimiter, transform, true);
     }
 
     @Override
     public <R> ListBuilder<R> transformedBy(Transform<R> transform) {
-      return new BasicListBuilder<>(delimiter, transform);
+      return new BasicListBuilder<>(delimiter, transform, bracketed);
     }
 
     @Override
     public ExpressionBuilder of(Iterable<? extends T> objects) {
+      if (bracketed) {
+        append("(");
+      }
       for (T obj : objects) {
         if (first) {
           first = false;
@@ -597,6 +618,9 @@ public class ExpressionBuilder {
           append(delimiter);
         }
         append(obj, transform);
+      }
+      if (bracketed) {
+        append(")");
       }
       return ExpressionBuilder.this;
     }
@@ -618,6 +642,17 @@ public class ExpressionBuilder {
       append(expression);
     }
     return this;
+  }
+
+  public void delete(
+      int start,
+      int end
+  ) {
+    sb.delete(start, end);
+  }
+
+  public int length() {
+    return sb.length();
   }
 
   public String toString() {

@@ -1,4 +1,4 @@
-package io.confluent.connect.jdbc.segment;
+package io.confluent.connect.jdbc.segment.model;
 
 import lombok.RequiredArgsConstructor;
 
@@ -7,8 +7,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class Segment {
 
-  final List<Object> from;
-  final List<Object> to;
+  public final List<Object> from;
+  public final List<Object> to;
 
   @Override
   public String toString() {
