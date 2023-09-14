@@ -8,6 +8,7 @@ import io.confluent.connect.jdbc.util.ColumnId;
 import io.confluent.connect.jdbc.util.ConnectionProvider;
 import io.confluent.connect.jdbc.util.TableId;
 
+import java.sql.Connection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -20,7 +21,7 @@ public abstract class SegmentConsumer extends SegmentWorker {
     TableId tableId,
     List<ColumnId> keyColumns,
     List<ColumnId> nonKeyColumns,
-    ConnectionProvider dbProvider,
+    Connection db,
     DatabaseDialect dialect,
     SegmentQueue queue,
     SegmentCriteria criteria,
@@ -31,7 +32,7 @@ public abstract class SegmentConsumer extends SegmentWorker {
           tableId,
           keyColumns,
           nonKeyColumns,
-          dbProvider,
+          db,
           dialect,
           queue,
           criteria,

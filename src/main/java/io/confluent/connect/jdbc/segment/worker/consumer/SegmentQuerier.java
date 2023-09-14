@@ -12,6 +12,7 @@ import io.confluent.connect.jdbc.util.ExpressionBuilder;
 import io.confluent.connect.jdbc.util.TableId;
 import lombok.extern.slf4j.Slf4j;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.List;
@@ -29,7 +30,7 @@ public class SegmentQuerier extends SegmentConsumer {
     TableId tableId,
     List<ColumnId> keyColumns,
     List<ColumnId> nonKeyColumns,
-    ConnectionProvider dbProvider,
+    Connection db,
     DatabaseDialect dialect,
     SegmentQueue queue,
     SegmentCriteria criteria,
@@ -41,7 +42,6 @@ public class SegmentQuerier extends SegmentConsumer {
           tableId,
           keyColumns,
           nonKeyColumns,
-          dbProvider,
           dialect,
           queue,
           criteria,

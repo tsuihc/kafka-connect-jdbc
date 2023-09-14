@@ -57,7 +57,8 @@ public class SegmentProducer extends SegmentWorker {
   }
 
   @Override
-  public Segment fetchSegment() throws Exception {
+  public Segment fetchSegment()
+  throws Exception {
     List<Object> queriedSegmentEnd = querySegmentEnd();
     if (queriedSegmentEnd.isEmpty()) {
       order = SegmentCriteria.Order.DESC;
@@ -71,19 +72,22 @@ public class SegmentProducer extends SegmentWorker {
   }
 
   @Override
-  public void onSegment(Segment segment) throws Exception {
+  public void onSegment(Segment segment)
+  throws Exception {
     queue.put(segment);
   }
 
   @Override
-  public void afterSegment(Segment segment) throws Exception {
+  public void afterSegment(Segment segment)
+  throws Exception {
     super.afterSegment(segment);
     datum = segment.to;
     order = SegmentCriteria.Order.ASC;
     offset = segmentSize;
   }
 
-  private List<Object> querySegmentEnd() throws SQLException {
+  private List<Object> querySegmentEnd()
+  throws SQLException {
     String queryExpression = buildSegmentEndQueryExpression();
     try (PreparedStatement stmt = dialect.createPreparedStatement(db, queryExpression)) {
       criteria.setQueryParameters(stmt, datum);

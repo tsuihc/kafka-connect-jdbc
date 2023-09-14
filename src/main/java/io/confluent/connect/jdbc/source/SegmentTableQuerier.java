@@ -8,11 +8,13 @@ import io.confluent.connect.jdbc.segment.queue.MemorySegmentQueue;
 import io.confluent.connect.jdbc.segment.queue.SegmentQueue;
 import io.confluent.connect.jdbc.segment.worker.SegmentProducer;
 import io.confluent.connect.jdbc.segment.worker.SegmentWorker;
+import io.confluent.connect.jdbc.segment.worker.consumer.SegmentQuerier;
 import io.confluent.connect.jdbc.util.ColumnDefinition;
 import io.confluent.connect.jdbc.util.ColumnId;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
+import org.codehaus.plexus.util.NioFiles;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -34,7 +36,7 @@ public class SegmentTableQuerier extends TableQuerier {
   private final int concurrency;
   private final BlockingQueue<SegmentResult<ResultSet>> resultSets;
   private final String filter;
-  private final String accessMode;
+  private final String consumerType;
   private final boolean orderSensitive;
 
   private ResultSet currentResultSet;
@@ -45,20 +47,23 @@ public class SegmentTableQuerier extends TableQuerier {
 
   public SegmentTableQuerier(
     DatabaseDialect dialect,
+    QueryMode mode,
     String name,
+    String topicPrefix,
+    String suffix,
     int segmentSize,
     int concurrency,
     int maxWaitedResultSetsNumber,
     String filter,
-    String accessMode,
+    String consumerType,
     boolean orderSensitive
   ) {
-    super(dialect, name);
+    super(dialect, mode, name, topicPrefix, suffix);
     this.segmentSize = segmentSize;
     this.concurrency = concurrency;
     this.resultSets = new ArrayBlockingQueue<>(maxWaitedResultSetsNumber);
     this.filter = filter;
-    this.accessMode = accessMode;
+    this.consumerType = consumerType;
     this.orderSensitive = orderSensitive;
   }
 
@@ -68,7 +73,8 @@ public class SegmentTableQuerier extends TableQuerier {
   }
 
   @Override
-  public synchronized void maybeStartQuery(Connection db) throws SQLException {
+  public synchronized void maybeStartQuery(Connection db)
+  throws SQLException {
     if (running) {
       return;
     }
@@ -110,34 +116,22 @@ public class SegmentTableQuerier extends TableQuerier {
     List<SegmentWorker> consumers = new ArrayList<>();
     for (int i = 0; i < concurrency; i++) {
       SegmentWorker consumer;
-      if (accessMode.equalsIgnoreCase("query")) {
-        consumer = new SegmentSelector(
-          tableId.toString() + "-selector-" + i,
+      if (consumerType.equalsIgnoreCase("query")) {
+        consumer = new SegmentQuerier(
+          tableId + "-querier-" + i,
           tableId,
           keyColumns,
           nonKeyColumns,
-          dbProvider,
+          db,
           dialect,
           queue,
           criteria,
           filter,
-          resultSets,
-          orderSensitive
-        );
-      } else if (accessMode.equalsIgnoreCase("delete")) {
-        consumer = new SegmentDeleter(
-          tableId + "-deleter-" + i,
-          tableId,
-          keyColumns,
-          nonKeyColumns,
-          dbProvider,
-          dialect,
-          queue,
-          criteria,
-          filter
+          orderSensitive,
+          resultSets
         );
       } else {
-        throw new IllegalStateException("Unsupported access mode: " + accessMode);
+        throw new UnsupportedOperationException("Consumer type [" + consumerType + "] is not supported yet");
       }
       consumers.add(consumer);
     }
@@ -150,7 +144,8 @@ public class SegmentTableQuerier extends TableQuerier {
   }
 
   @Override
-  public boolean next() throws SQLException {
+  public boolean next()
+  throws SQLException {
     if (currentResultSet != null && !currentResultSet.isClosed() && currentResultSet.next()) {
       return true;
     }
@@ -160,7 +155,8 @@ public class SegmentTableQuerier extends TableQuerier {
     return false;
   }
 
-  public boolean nextNotEmptyResultSet() throws SQLException {
+  public boolean nextNotEmptyResultSet()
+  throws SQLException {
     if (currentResultSet != null) {
       closeResultSet(currentResultSet);
     }
@@ -189,7 +185,8 @@ public class SegmentTableQuerier extends TableQuerier {
   }
 
   @Override
-  public SourceRecord extractRecord() throws SQLException {
+  public SourceRecord extractRecord()
+  throws SQLException {
     Struct struct = JdbcSourceHelper.extractStructFromResultSet(schemaMapping, currentResultSet);
     String name = tableId.tableName();
     return new SourceRecord(null,
@@ -217,7 +214,8 @@ public class SegmentTableQuerier extends TableQuerier {
     }
   }
 
-  private void closeResultSet(ResultSet resultSet) throws SQLException {
+  private void closeResultSet(ResultSet resultSet)
+  throws SQLException {
     try {
       if (resultSet != null) {
         if (resultSet.getStatement() != null) {
@@ -249,12 +247,14 @@ public class SegmentTableQuerier extends TableQuerier {
   }
 
   @Override
-  protected void createPreparedStatement(Connection db) throws SQLException {
+  protected void createPreparedStatement(Connection db)
+  throws SQLException {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  protected ResultSet executeQuery() throws SQLException {
+  protected ResultSet executeQuery()
+  throws SQLException {
     throw new UnsupportedOperationException();
   }
 

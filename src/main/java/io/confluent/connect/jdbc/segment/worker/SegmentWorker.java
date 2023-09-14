@@ -20,7 +20,7 @@ public abstract class SegmentWorker implements Runnable {
   protected final TableId tableId;
   protected final List<ColumnId> keyColumns;
   protected final List<ColumnId> nonKeyColumns;
-  protected final ConnectionProvider dbProvider;
+  protected final Connection db;
   protected final DatabaseDialect dialect;
   protected final SegmentQueue queue;
   protected final SegmentCriteria criteria;
@@ -30,8 +30,6 @@ public abstract class SegmentWorker implements Runnable {
   protected volatile boolean running;
   protected volatile boolean complete;
   protected volatile Throwable throwable;
-
-  protected Connection db;
 
   @Override
   public void run() {
@@ -68,20 +66,24 @@ public abstract class SegmentWorker implements Runnable {
     }
   }
 
-  public void init() throws Exception {
-    db = dbProvider.getConnection();
+  public void init()
+  throws Exception {
     db.setAutoCommit(true);
   }
 
-  public abstract Segment fetchSegment() throws Exception;
+  public abstract Segment fetchSegment()
+  throws Exception;
 
-  public void beforeSegment(Segment segment) throws Exception {
+  public void beforeSegment(Segment segment)
+  throws Exception {
   }
 
-  public void onSegment(Segment segment) throws Exception {
+  public void onSegment(Segment segment)
+  throws Exception {
   }
 
-  public void afterSegment(Segment segment) throws Exception {
+  public void afterSegment(Segment segment)
+  throws Exception {
   }
 
   public void onThrowable(Throwable throwable) {

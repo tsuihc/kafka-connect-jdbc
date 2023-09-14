@@ -39,41 +39,41 @@ public class SegmentCriteria {
 
   public void whereClause(
     ExpressionBuilder builder,
-    List<Object> segmentStart,
-    Comparator compareToStart,
-    List<Object> segmentEnd,
-    Comparator compareToEnd,
+    List<Object> from,
+    Comparator compareFrom,
+    List<Object> to,
+    Comparator compareTo,
     String filter
   ) {
-    boolean withSegmentStart = segmentStart != null && segmentStart.size() > 0;
-    boolean withSegmentEnd = segmentEnd != null && segmentEnd.size() > 0;
-    boolean withFilter = filter != null && !filter.isEmpty();
-    if (!withSegmentStart && !withSegmentEnd && !withFilter) {
+    boolean hasFrom = from != null && !from.isEmpty();
+    boolean hasTo = to != null && !to.isEmpty();
+    boolean hasFilter = filter != null && !filter.isEmpty();
+    if (!hasFrom && !hasTo && !hasFilter) {
       return;
     }
 
     builder.append(" WHERE ");
-    if (withSegmentStart) {
+    if (hasFrom) {
       builder.appendList()
              .bracketed()
              .of(keyColumns);
-      builder.append(compareToStart.symbol);
+      builder.append(compareFrom.symbol);
       builder.appendList()
              .bracketed()
              .of(Collections.nCopies(keyColumns.size(), "?"));
       builder.append(" AND ");
     }
-    if (withSegmentEnd) {
+    if (hasTo) {
       builder.appendList()
              .bracketed()
              .of(keyColumns);
-      builder.append(compareToEnd.symbol);
+      builder.append(compareTo.symbol);
       builder.appendList()
              .bracketed()
              .of(Collections.nCopies(keyColumns.size(), "?"));
       builder.append(" AND ");
     }
-    if (withFilter) {
+    if (hasFilter) {
       builder.append(filter);
       builder.append(" AND ");
     }
@@ -108,7 +108,9 @@ public class SegmentCriteria {
     List<Object>... parameters
   )
   throws SQLException {
-    List<Object> objects = Stream.of(parameters).flatMap(Collection::stream).collect(Collectors.toList());
+    List<Object> objects = Stream.of(parameters)
+                                 .flatMap(Collection::stream)
+                                 .collect(Collectors.toList());
     for (int i = 0; i < objects.size(); i++) {
       stmt.setObject(i + 1, objects.get(i));
     }

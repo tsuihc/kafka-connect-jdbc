@@ -30,7 +30,9 @@ public class SegmentWorkerScheduler {
     running = true;
     executorService = new ThreadPoolExecutor(producers.size() + consumers.size(),
                                              producers.size() + consumers.size(),
-                                             1000L, TimeUnit.MILLISECONDS, new SynchronousQueue<>());
+                                             1000L,
+                                             TimeUnit.MILLISECONDS,
+                                             new SynchronousQueue<>());
     for (SegmentWorker producer : producers) {
       executorService.submit(producer);
     }
