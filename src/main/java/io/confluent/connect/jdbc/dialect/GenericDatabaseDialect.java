@@ -18,6 +18,7 @@ package io.confluent.connect.jdbc.dialect;
 import java.time.ZoneOffset;
 import java.util.TimeZone;
 
+import io.confluent.connect.jdbc.segment.helper.SegmentCriteria;
 import io.confluent.connect.jdbc.transforms.JdbcSelectTransformConfig;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigException;
@@ -1010,6 +1011,11 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     List<ColumnId> timestampColumns
   ) {
     return new TimestampIncrementingCriteria(incrementingColumn, timestampColumns, timeZone);
+  }
+
+  @Override
+  public SegmentCriteria criteriaFor(List<ColumnId> keyColumns) {
+    return new SegmentCriteria(keyColumns);
   }
 
   /**
