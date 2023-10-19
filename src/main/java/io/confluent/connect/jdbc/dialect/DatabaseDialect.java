@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import io.confluent.connect.jdbc.segment.helper.SegmentCriteria;
 import io.confluent.connect.jdbc.sink.JdbcSinkConfig;
 import io.confluent.connect.jdbc.sink.metadata.FieldsMetadata;
 import io.confluent.connect.jdbc.sink.metadata.SchemaPair;
@@ -142,9 +143,10 @@ public interface DatabaseDialect extends ConnectionProvider {
    * @throws SQLException if there is an error with the database connection
    */
   PreparedStatement createPreparedStatement(
-      Connection connection,
-      String query
-  ) throws SQLException;
+    Connection connection,
+    String query
+  )
+  throws SQLException;
 
   /**
    * Parse the supplied simple name or fully qualified name for a table into a {@link TableId}.
@@ -180,9 +182,10 @@ public interface DatabaseDialect extends ConnectionProvider {
    * @throws SQLException if there is an error with the database connection
    */
   Timestamp currentTimeOnDB(
-      Connection connection,
-      Calendar cal
-  ) throws SQLException, ConnectException;
+    Connection connection,
+    Calendar cal
+  )
+  throws SQLException, ConnectException;
 
   /**
    * Get a list of identifiers of the non-system tables in the database.
@@ -191,7 +194,8 @@ public interface DatabaseDialect extends ConnectionProvider {
    * @return a list of tables; never null
    * @throws SQLException if there is an error with the database connection
    */
-  List<TableId> tableIds(Connection connection) throws SQLException;
+  List<TableId> tableIds(Connection connection)
+  throws SQLException;
 
   /**
    * Determine if the specified table exists in the database.
@@ -201,7 +205,11 @@ public interface DatabaseDialect extends ConnectionProvider {
    * @return true if the table exists, or false otherwise
    * @throws SQLException if there is an error accessing the metadata
    */
-  boolean tableExists(Connection connection, TableId tableId) throws SQLException;
+  boolean tableExists(
+    Connection connection,
+    TableId tableId
+  )
+  throws SQLException;
 
 
   /**
@@ -209,12 +217,12 @@ public interface DatabaseDialect extends ConnectionProvider {
    * Isolation modes can differ by database so this provides an interface for
    * the mode to be overridden.
    *
-   * @param connection the database connection; may not be null
+   * @param connection               the database connection; may not be null
    * @param transactionIsolationMode the transaction isolation config
    */
   void setConnectionIsolationMode(
-          Connection connection,
-          TransactionIsolationMode transactionIsolationMode
+    Connection connection,
+    TransactionIsolationMode transactionIsolationMode
   );
 
   /**
@@ -228,10 +236,11 @@ public interface DatabaseDialect extends ConnectionProvider {
    * @throws SQLException if there is an error accessing the metadata
    */
   Map<ColumnId, ColumnDefinition> describeColumns(
-      Connection connection,
-      String tablePattern,
-      String columnPattern
-  ) throws SQLException;
+    Connection connection,
+    String tablePattern,
+    String columnPattern
+  )
+  throws SQLException;
 
   /**
    * Create the definition for the columns described by the database metadata.
@@ -245,24 +254,26 @@ public interface DatabaseDialect extends ConnectionProvider {
    * @throws SQLException if there is an error accessing the metadata
    */
   Map<ColumnId, ColumnDefinition> describeColumns(
-      Connection connection,
-      String catalogPattern,
-      String schemaPattern,
-      String tablePattern,
-      String columnPattern
-  ) throws SQLException;
+    Connection connection,
+    String catalogPattern,
+    String schemaPattern,
+    String tablePattern,
+    String columnPattern
+  )
+  throws SQLException;
 
   /**
    * Create the definition for the columns in the result set.
    *
    * @param rsMetadata the result set metadata; may not be null
    * @return the column definitions keyed by their {@link ColumnId} and in the same order as the
-   *     result set; never null
+   * result set; never null
    * @throws SQLException if there is an error accessing the result set metadata
    */
   Map<ColumnId, ColumnDefinition> describeColumns(
-      ResultSetMetaData rsMetadata
-  ) throws SQLException;
+    ResultSetMetaData rsMetadata
+  )
+  throws SQLException;
 
   /**
    * Get the definition of the specified table.
@@ -272,7 +283,11 @@ public interface DatabaseDialect extends ConnectionProvider {
    * @return the table definition; null if the table does not exist
    * @throws SQLException if there is an error accessing the metadata
    */
-  TableDefinition describeTable(Connection connection, TableId tableId) throws SQLException;
+  TableDefinition describeTable(
+    Connection connection,
+    TableId tableId
+  )
+  throws SQLException;
 
   /**
    * Create the definition for the columns in the result set returned when querying the table. This
@@ -284,9 +299,10 @@ public interface DatabaseDialect extends ConnectionProvider {
    * @throws SQLException if there is an error accessing the result set metadata
    */
   Map<ColumnId, ColumnDefinition> describeColumnsByQuerying(
-      Connection connection,
-      TableId tableId
-  ) throws SQLException;
+    Connection connection,
+    TableId tableId
+  )
+  throws SQLException;
 
   /**
    * Create a criteria generator for queries that look for changed data using timestamp and
@@ -299,9 +315,17 @@ public interface DatabaseDialect extends ConnectionProvider {
    * @return the {@link TimestampIncrementingCriteria} implementation; never null
    */
   TimestampIncrementingCriteria criteriaFor(
-      ColumnId incrementingColumn,
-      List<ColumnId> timestampColumns
+    ColumnId incrementingColumn,
+    List<ColumnId> timestampColumns
   );
+
+  /**
+   * Create a criteria generator for queries that based on segments which is splitted by key columns.
+   *
+   * @param keyColumns the columns to split the segment
+   * @return the {@link SegmentCriteria} implementation; never null
+   */
+  SegmentCriteria criteriaFor(List<ColumnId> keyColumns);
 
   /**
    * Use the supplied {@link SchemaBuilder} to add a field that corresponds to the column with the
@@ -311,7 +335,10 @@ public interface DatabaseDialect extends ConnectionProvider {
    * @param builder the schema builder; may not be null
    * @return the name of the field, or null if no field was added
    */
-  String addFieldToSchema(ColumnDefinition column, SchemaBuilder builder);
+  String addFieldToSchema(
+    ColumnDefinition column,
+    SchemaBuilder builder
+  );
 
   /**
    * Apply the supplied DDL statements using the given connection. This gives the dialect the
@@ -321,22 +348,26 @@ public interface DatabaseDialect extends ConnectionProvider {
    * @param statements the list of DDL statements to execute
    * @throws SQLException if there is an error executing the statements
    */
-  void applyDdlStatements(Connection connection, List<String> statements) throws SQLException;
+  void applyDdlStatements(
+    Connection connection,
+    List<String> statements
+  )
+  throws SQLException;
 
   /**
    * Build the SELECT prepared statement expression for the given table and its columns.
    *
-   * @param table         the identifier of the table; may not be null
-   * @param fields        the identifiers of the columns to select; may not be null
-   *                      but may be empty, which means select all fields
-   * @param keyColumns    the identifiers of the other columns in the table; may not be null but may
-   *                      be empty
+   * @param table      the identifier of the table; may not be null
+   * @param fields     the identifiers of the columns to select; may not be null
+   *                   but may be empty, which means select all fields
+   * @param keyColumns the identifiers of the other columns in the table; may not be null but may
+   *                   be empty
    * @return the SELECT statement; may not be null
    */
   String buildSelectStatement(
-      TableId table,
-      Collection<ColumnId> fields,
-      Collection<ColumnId> keyColumns
+    TableId table,
+    Collection<ColumnId> fields,
+    Collection<ColumnId> keyColumns
   );
 
   /**
@@ -357,9 +388,9 @@ public interface DatabaseDialect extends ConnectionProvider {
    */
   @Deprecated
   String buildInsertStatement(
-      TableId table,
-      Collection<ColumnId> keyColumns,
-      Collection<ColumnId> nonKeyColumns
+    TableId table,
+    Collection<ColumnId> keyColumns,
+    Collection<ColumnId> nonKeyColumns
   );
 
   /**
@@ -379,10 +410,10 @@ public interface DatabaseDialect extends ConnectionProvider {
    * @return the INSERT statement; may not be null
    */
   default String buildInsertStatement(
-      TableId table,
-      Collection<ColumnId> keyColumns,
-      Collection<ColumnId> nonKeyColumns,
-      TableDefinition definition
+    TableId table,
+    Collection<ColumnId> keyColumns,
+    Collection<ColumnId> nonKeyColumns,
+    TableDefinition definition
   ) {
     return buildInsertStatement(table, keyColumns, nonKeyColumns);
   }
@@ -406,9 +437,9 @@ public interface DatabaseDialect extends ConnectionProvider {
    */
   @Deprecated
   String buildUpdateStatement(
-      TableId table,
-      Collection<ColumnId> keyColumns,
-      Collection<ColumnId> nonKeyColumns
+    TableId table,
+    Collection<ColumnId> keyColumns,
+    Collection<ColumnId> nonKeyColumns
   );
 
   /**
@@ -429,10 +460,10 @@ public interface DatabaseDialect extends ConnectionProvider {
    * @return the UPDATE statement; may not be null
    */
   default String buildUpdateStatement(
-      TableId table,
-      Collection<ColumnId> keyColumns,
-      Collection<ColumnId> nonKeyColumns,
-      TableDefinition definition
+    TableId table,
+    Collection<ColumnId> keyColumns,
+    Collection<ColumnId> nonKeyColumns,
+    TableDefinition definition
   ) {
     return buildUpdateStatement(table, keyColumns, nonKeyColumns);
   }
@@ -459,9 +490,9 @@ public interface DatabaseDialect extends ConnectionProvider {
    */
   @Deprecated
   String buildUpsertQueryStatement(
-      TableId table,
-      Collection<ColumnId> keyColumns,
-      Collection<ColumnId> nonKeyColumns
+    TableId table,
+    Collection<ColumnId> keyColumns,
+    Collection<ColumnId> nonKeyColumns
   );
 
   /**
@@ -484,10 +515,10 @@ public interface DatabaseDialect extends ConnectionProvider {
    * @throws UnsupportedOperationException if the dialect does not support upserts
    */
   default String buildUpsertQueryStatement(
-      TableId table,
-      Collection<ColumnId> keyColumns,
-      Collection<ColumnId> nonKeyColumns,
-      TableDefinition definition
+    TableId table,
+    Collection<ColumnId> keyColumns,
+    Collection<ColumnId> nonKeyColumns,
+    TableDefinition definition
   ) {
     return buildUpsertQueryStatement(table, keyColumns, nonKeyColumns);
   }
@@ -496,15 +527,15 @@ public interface DatabaseDialect extends ConnectionProvider {
    * Build the DELETE prepared statement expression for the given table and its columns. Variables
    * for each key column should also appear in the WHERE clause of the statement.
    *
-   * @param table         the identifier of the table; may not be null
-   * @param keyColumns    the identifiers of the columns in the primary/unique key; may not be null
-   *                      but may be empty
+   * @param table      the identifier of the table; may not be null
+   * @param keyColumns the identifiers of the columns in the primary/unique key; may not be null
+   *                   but may be empty
    * @return the delete statement; may not be null
    * @throws UnsupportedOperationException if the dialect does not support deletes
    */
   default String buildDeleteStatement(
-      TableId table,
-      Collection<ColumnId> keyColumns
+    TableId table,
+    Collection<ColumnId> keyColumns
   ) {
     throw new UnsupportedOperationException();
   }
@@ -516,7 +547,10 @@ public interface DatabaseDialect extends ConnectionProvider {
    * @param options the options; may be null
    * @return the DROP TABLE statement; may not be null
    */
-  String buildDropTableStatement(TableId table, DropOptions options);
+  String buildDropTableStatement(
+    TableId table,
+    DropOptions options
+  );
 
   /**
    * Build the CREATE TABLE statement expression for the given table and its columns.
@@ -525,7 +559,10 @@ public interface DatabaseDialect extends ConnectionProvider {
    * @param fields the information about the fields in the sink records; may not be null
    * @return the CREATE TABLE statement; may not be null
    */
-  String buildCreateTableStatement(TableId table, Collection<SinkRecordField> fields);
+  String buildCreateTableStatement(
+    TableId table,
+    Collection<SinkRecordField> fields
+  );
 
   /**
    * Build the ALTER TABLE statement expression for the given table and its columns.
@@ -534,10 +571,14 @@ public interface DatabaseDialect extends ConnectionProvider {
    * @param fields the information about the fields in the sink records; may not be null
    * @return the ALTER TABLE statement; may not be null
    */
-  List<String> buildAlterTable(TableId table, Collection<SinkRecordField> fields);
+  List<String> buildAlterTable(
+    TableId table,
+    Collection<SinkRecordField> fields
+  );
 
   /**
    * Create a component that can bind record values into the supplied prepared statement.
+   *
    * @param statement      the prepared statement
    * @param pkMode         the primary key mode; may not be null
    * @param schemaPair     the key and value schemas; may not be null
@@ -548,11 +589,11 @@ public interface DatabaseDialect extends ConnectionProvider {
    */
   @Deprecated
   StatementBinder statementBinder(
-      PreparedStatement statement,
-      JdbcSinkConfig.PrimaryKeyMode pkMode,
-      SchemaPair schemaPair,
-      FieldsMetadata fieldsMetadata,
-      JdbcSinkConfig.InsertMode insertMode
+    PreparedStatement statement,
+    JdbcSinkConfig.PrimaryKeyMode pkMode,
+    SchemaPair schemaPair,
+    FieldsMetadata fieldsMetadata,
+    JdbcSinkConfig.InsertMode insertMode
   );
 
   /**
@@ -561,22 +602,22 @@ public interface DatabaseDialect extends ConnectionProvider {
    * tableDefinition. This overloading method is introduced to deprecate the other overloaded
    * method eventually.
    *
-   * @param statement      the prepared statement
-   * @param pkMode         the primary key mode; may not be null
-   * @param schemaPair     the key and value schemas; may not be null
-   * @param fieldsMetadata the field metadata; may not be null
+   * @param statement       the prepared statement
+   * @param pkMode          the primary key mode; may not be null
+   * @param schemaPair      the key and value schemas; may not be null
+   * @param fieldsMetadata  the field metadata; may not be null
    * @param tableDefinition the table definition; may be null
-   * @param insertMode     the insert mode; may not be null
+   * @param insertMode      the insert mode; may not be null
    * @return the statement binder; may not be null
    * @see #bindField(PreparedStatement, int, Schema, Object)
    */
   default StatementBinder statementBinder(
-      PreparedStatement statement,
-      JdbcSinkConfig.PrimaryKeyMode pkMode,
-      SchemaPair schemaPair,
-      FieldsMetadata fieldsMetadata,
-      TableDefinition tableDefinition,
-      JdbcSinkConfig.InsertMode insertMode
+    PreparedStatement statement,
+    JdbcSinkConfig.PrimaryKeyMode pkMode,
+    SchemaPair schemaPair,
+    FieldsMetadata fieldsMetadata,
+    TableDefinition tableDefinition,
+    JdbcSinkConfig.InsertMode insertMode
   ) {
     return statementBinder(statement, pkMode, schemaPair, fieldsMetadata, insertMode);
   }
@@ -587,19 +628,21 @@ public interface DatabaseDialect extends ConnectionProvider {
    * (eg, MSSQL Server's DATETIME and DATETIME2 are considered {@link java.sql.Time}).
    * This function is used to handle these specifc column types.
    *
-   * @param rsMetadata          the result set metadata; may not be null
-   * @param columns             columns to check; may not be null
-   * @throws ConnectException   if column type not compatible with connector
-   *                            or if there is an error accessing the result set metadata
+   * @param rsMetadata the result set metadata; may not be null
+   * @param columns    columns to check; may not be null
+   * @throws ConnectException if column type not compatible with connector
+   *                          or if there is an error accessing the result set metadata
    */
   void validateSpecificColumnTypes(
-          ResultSetMetaData rsMetadata,
-          List<ColumnId> columns
-  ) throws ConnectException;
+    ResultSetMetaData rsMetadata,
+    List<ColumnId> columns
+  )
+  throws ConnectException;
 
   /**
    * Method that binds a value with the given schema at the specified variable within a prepared
    * statement.
+   *
    * @param statement the prepared statement; may not be null
    * @param index     the 1-based index of the variable within the prepared statement
    * @param schema    the schema for the value; may be null only if the value is null
@@ -609,14 +652,16 @@ public interface DatabaseDialect extends ConnectionProvider {
    */
   @Deprecated
   void bindField(
-      PreparedStatement statement,
-      int index,
-      Schema schema,
-      Object value
-  ) throws SQLException;
+    PreparedStatement statement,
+    int index,
+    Schema schema,
+    Object value
+  )
+  throws SQLException;
 
 
-  /** Method that binds a value with the given schema at the specified variable within a prepared
+  /**
+   * Method that binds a value with the given schema at the specified variable within a prepared
    * statement. By default, the behavior is the same as the other overloaded method with the extra
    * parameter colDef. This overloading method is introduced to deprecate the other overloaded
    * method eventually.
@@ -630,12 +675,13 @@ public interface DatabaseDialect extends ConnectionProvider {
    * @see #statementBinder
    */
   default void bindField(
-      PreparedStatement statement,
-      int index,
-      Schema schema,
-      Object value,
-      ColumnDefinition colDef
-  ) throws SQLException {
+    PreparedStatement statement,
+    int index,
+    Schema schema,
+    Object value,
+    ColumnDefinition colDef
+  )
+  throws SQLException {
     bindField(statement, index, schema, value);
   }
 
@@ -651,7 +697,8 @@ public interface DatabaseDialect extends ConnectionProvider {
      * @param record the sink record with values to be bound into the statement; never null
      * @throws SQLException if there is a problem binding values into the statement
      */
-    void bindRecord(SinkRecord record) throws SQLException;
+    void bindRecord(SinkRecord record)
+    throws SQLException;
   }
 
   /**
@@ -678,6 +725,7 @@ public interface DatabaseDialect extends ConnectionProvider {
      * @throws SQLException if there is an error with the database connection
      * @throws IOException  if there is an error accessing a streaming value from the result set
      */
-    Object convert(ResultSet resultSet) throws SQLException, IOException;
+    Object convert(ResultSet resultSet)
+    throws SQLException, IOException;
   }
 }

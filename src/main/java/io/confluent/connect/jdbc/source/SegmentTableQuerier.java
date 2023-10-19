@@ -13,9 +13,12 @@ import io.confluent.connect.jdbc.util.ColumnDefinition;
 import io.confluent.connect.jdbc.util.ColumnId;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.errors.ConnectException;
+import org.apache.kafka.connect.errors.DataException;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.codehaus.plexus.util.NioFiles;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -35,6 +38,7 @@ public class SegmentTableQuerier extends TableQuerier {
   private final int segmentSize;
   private final int concurrency;
   private final BlockingQueue<SegmentResult<ResultSet>> resultSets;
+  private final int segmentQueueSize;
   private final String filter;
   private final String consumerType;
   private final boolean orderSensitive;
@@ -45,23 +49,23 @@ public class SegmentTableQuerier extends TableQuerier {
   private volatile boolean running = false;
   private SchemaMapping schemaMapping;
 
-  public SegmentTableQuerier(
-    DatabaseDialect dialect,
-    QueryMode mode,
-    String name,
-    String topicPrefix,
-    String suffix,
-    int segmentSize,
-    int concurrency,
-    int maxWaitedResultSetsNumber,
-    String filter,
-    String consumerType,
-    boolean orderSensitive
-  ) {
+  public SegmentTableQuerier(DatabaseDialect dialect,
+                             QueryMode mode,
+                             String name,
+                             String topicPrefix,
+                             String suffix,
+                             int segmentSize,
+                             int concurrency,
+                             int maxWaitedResultSetsNumber,
+                             int segmentQueueSize,
+                             String filter,
+                             String consumerType,
+                             boolean orderSensitive) {
     super(dialect, mode, name, topicPrefix, suffix);
     this.segmentSize = segmentSize;
     this.concurrency = concurrency;
     this.resultSets = new ArrayBlockingQueue<>(maxWaitedResultSetsNumber);
+    this.segmentQueueSize = segmentQueueSize;
     this.filter = filter;
     this.consumerType = consumerType;
     this.orderSensitive = orderSensitive;
@@ -84,12 +88,7 @@ public class SegmentTableQuerier extends TableQuerier {
     List<ColumnId> keyColumns = new ArrayList<>();
     List<ColumnId> nonKeyColumns = new ArrayList<>();
     Map<ColumnId, ColumnDefinition> columnDefns = new LinkedHashMap<>();
-    dialect.describeColumns(db,
-                            tableId.catalogName(),
-                            tableId.schemaName(),
-                            tableId.tableName(),
-                            null
-    ).forEach(((columnId, columnDefn) -> {
+    dialect.describeColumns(db, tableId.catalogName(), tableId.schemaName(), tableId.tableName(), null).forEach(((columnId, columnDefn) -> {
       if (columnDefn.isPrimaryKey()) {
         keyColumns.add(columnId);
       } else {
@@ -99,47 +98,19 @@ public class SegmentTableQuerier extends TableQuerier {
     }));
     schemaMapping = SchemaMapping.create(tableId.tableName(), columnDefns, dialect);
     SegmentCriteria criteria = dialect.criteriaFor(keyColumns);
-    SegmentQueue queue = new MemorySegmentQueue(100);
-    SegmentWorker slicer = new SegmentProducer(
-      tableId + "-slicer-0",
-      tableId,
-      keyColumns,
-      nonKeyColumns,
-      null,
-      dialect,
-      queue,
-      criteria,
-      filter,
-      segmentSize,
-      Collections.emptyList()
-    );
+    SegmentQueue queue = new MemorySegmentQueue(segmentQueueSize);
+    SegmentWorker slicer = new SegmentProducer(tableId + "-slicer-0", tableId, keyColumns, nonKeyColumns, null, dialect, queue, criteria, filter, segmentSize, Collections.emptyList());
     List<SegmentWorker> consumers = new ArrayList<>();
     for (int i = 0; i < concurrency; i++) {
       SegmentWorker consumer;
       if (consumerType.equalsIgnoreCase("query")) {
-        consumer = new SegmentQuerier(
-          tableId + "-querier-" + i,
-          tableId,
-          keyColumns,
-          nonKeyColumns,
-          db,
-          dialect,
-          queue,
-          criteria,
-          filter,
-          orderSensitive,
-          resultSets
-        );
+        consumer = new SegmentQuerier(tableId + "-querier-" + i, tableId, keyColumns, nonKeyColumns, db, dialect, queue, criteria, filter, orderSensitive, resultSets);
       } else {
         throw new UnsupportedOperationException("Consumer type [" + consumerType + "] is not supported yet");
       }
       consumers.add(consumer);
     }
-    scheduler = new SegmentWorkerScheduler(
-      Collections.singletonList(slicer),
-      queue,
-      consumers
-    );
+    scheduler = new SegmentWorkerScheduler(Collections.singletonList(slicer), queue, consumers);
     scheduler.start();
   }
 
@@ -187,23 +158,33 @@ public class SegmentTableQuerier extends TableQuerier {
   @Override
   public SourceRecord extractRecord()
   throws SQLException {
-    Struct struct = JdbcSourceHelper.extractStructFromResultSet(schemaMapping, currentResultSet);
+    Struct struct = extractStructFromResultSet(schemaMapping, currentResultSet);
     String name = tableId.tableName();
-    return new SourceRecord(null,
-                            null,
-                            name,
-                            null,
-                            null,
-                            struct.schema(),
-                            struct);
+    return new SourceRecord(null, null, name, null, null, struct.schema(), struct);
+  }
+
+  public static Struct extractStructFromResultSet(
+    SchemaMapping schemaMapping,
+    ResultSet resultSet
+  ) {
+    Struct struct = new Struct(schemaMapping.schema());
+    for (SchemaMapping.FieldSetter setter : schemaMapping.fieldSetters()) {
+      try {
+        setter.setField(struct, resultSet);
+      } catch (IOException e) {
+        log.warn("Error mapping fields into Connect record", e);
+        throw new ConnectException(e);
+      } catch (SQLException e) {
+        log.warn("SQL error mapping fields into Connect record", e);
+        throw new DataException(e);
+      }
+    }
+    return struct;
   }
 
   @Override
-  public void reset(
-    long now,
-    boolean resetOffset
-  ) {
-    log.debug("Resetting...");
+  public void reset(long now,
+                    boolean resetOffset) {
     this.running = false;
     this.scheduler.stop();
     this.closeResultSetQuietly(currentResultSet);

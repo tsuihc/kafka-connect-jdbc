@@ -443,6 +443,16 @@ public class JdbcSourceTask extends SourceTask {
         querier.resetRetryCount();
 
         if (!hadNext) {
+          log.info("Querying end and the querier is endless[{}]", querier.endlessQuerying());
+          // If we finished processing the results from the current query
+          // It is determined by querier whether to requeueHead or not
+          // Maybe it is a one-time querier which exits normally after query
+          if (querier.endlessQuerying()) {
+            resetAndRequeueHead(querier, false);
+          } else {
+            resetAndRemovedHead(querier);
+          }
+
           // If we finished processing the results from the current query, we can reset and send
           // the querier to the tail of the queue
           resetAndRequeueHead(querier, false);
@@ -517,6 +527,13 @@ public class JdbcSourceTask extends SourceTask {
     assert removedQuerier == expectedHead;
     expectedHead.reset(time.milliseconds(), resetOffset);
     tableQueue.add(expectedHead);
+  }
+
+  private void resetAndRemovedHead(TableQuerier expectedHead) {
+    log.debug("Removing querier {}", expectedHead.toString());
+    TableQuerier removedQuerier = tableQueue.poll();
+    assert removedQuerier == expectedHead;
+    expectedHead.reset(time.milliseconds(), true);
   }
 
   private void validateNonNullable(

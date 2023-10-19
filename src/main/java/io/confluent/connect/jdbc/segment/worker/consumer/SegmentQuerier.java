@@ -42,6 +42,7 @@ public class SegmentQuerier extends SegmentConsumer {
           tableId,
           keyColumns,
           nonKeyColumns,
+          db,
           dialect,
           queue,
           criteria,
@@ -51,7 +52,8 @@ public class SegmentQuerier extends SegmentConsumer {
   }
 
   @Override
-  public void onSegment(Segment segment) throws Exception {
+  public void onSegment(Segment segment)
+  throws Exception {
     String queryExpression = buildSegmentSelectExpression(segment);
     try (PreparedStatement stmt = dialect.createPreparedStatement(db, queryExpression);) {
       criteria.setQueryParameters(stmt, segment.from, segment.to);

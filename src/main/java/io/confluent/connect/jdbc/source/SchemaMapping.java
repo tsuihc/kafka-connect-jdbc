@@ -15,6 +15,7 @@
 
 package io.confluent.connect.jdbc.source;
 
+import io.confluent.connect.jdbc.util.TableId;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -55,11 +56,10 @@ public final class SchemaMapping {
    * @return the schema mapping; never null
    * @throws SQLException if there is a problem accessing the result set metadata
    */
-  public static SchemaMapping create(
-      String schemaName,
-      ResultSetMetaData metadata,
-      DatabaseDialect dialect
-  ) throws SQLException {
+  public static SchemaMapping create(String schemaName,
+                                     ResultSetMetaData metadata,
+                                     DatabaseDialect dialect)
+  throws SQLException {
     Map<ColumnId, ColumnDefinition> colDefns = dialect.describeColumns(metadata);
     Map<String, ColumnConverter> colConvertersByFieldName = new LinkedHashMap<>();
     SchemaBuilder builder = SchemaBuilder.struct().name(schemaName);
@@ -79,13 +79,33 @@ public final class SchemaMapping {
     return new SchemaMapping(schema, colConvertersByFieldName);
   }
 
+  public static SchemaMapping create(String schemaName,
+                                     Map<ColumnId, ColumnDefinition> colDefns,
+                                     DatabaseDialect dialect)
+  throws SQLException {
+    Map<String, DatabaseDialect.ColumnConverter> colConvertersByFieldName = new LinkedHashMap<>();
+    SchemaBuilder builder = SchemaBuilder.struct().name(schemaName);
+    int columnNumber = 0;
+    for (ColumnDefinition colDefn : colDefns.values()) {
+      ++columnNumber;
+      String fieldName = dialect.addFieldToSchema(colDefn, builder);
+      if (fieldName == null) {
+        continue;
+      }
+      Field field = builder.field(fieldName);
+      ColumnMapping mapping = new ColumnMapping(colDefn, columnNumber, field);
+      DatabaseDialect.ColumnConverter converter = dialect.createColumnConverter(mapping);
+      colConvertersByFieldName.put(fieldName, converter);
+    }
+    Schema schema = builder.build();
+    return new SchemaMapping(schema, colConvertersByFieldName);
+  }
+
   private final Schema schema;
   private final List<FieldSetter> fieldSetters;
 
-  private SchemaMapping(
-      Schema schema,
-      Map<String, ColumnConverter> convertersByFieldName
-  ) {
+  private SchemaMapping(Schema schema,
+                        Map<String, ColumnConverter> convertersByFieldName) {
     assert schema != null;
     assert convertersByFieldName != null;
     assert !convertersByFieldName.isEmpty();
@@ -125,10 +145,8 @@ public final class SchemaMapping {
     private final ColumnConverter converter;
     private final Field field;
 
-    private FieldSetter(
-        ColumnConverter converter,
-        Field field
-    ) {
+    private FieldSetter(ColumnConverter converter,
+                        Field field) {
       this.converter = converter;
       this.field = field;
     }
@@ -152,10 +170,9 @@ public final class SchemaMapping {
      * @throws SQLException if there is an error accessing the result set
      * @throws IOException  if there is an error accessing a streaming value from the result set
      */
-    public void setField(
-        Struct struct,
-        ResultSet resultSet
-    ) throws SQLException, IOException {
+    public void setField(Struct struct,
+                         ResultSet resultSet)
+    throws SQLException, IOException {
       Object value = this.converter.convert(resultSet);
       if (resultSet.wasNull()) {
         struct.put(field, null);

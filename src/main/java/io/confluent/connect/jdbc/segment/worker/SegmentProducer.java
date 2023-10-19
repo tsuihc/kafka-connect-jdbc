@@ -9,6 +9,7 @@ import io.confluent.connect.jdbc.util.ConnectionProvider;
 import io.confluent.connect.jdbc.util.ExpressionBuilder;
 import io.confluent.connect.jdbc.util.TableId;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -33,7 +34,7 @@ public class SegmentProducer extends SegmentWorker {
     TableId tableId,
     List<ColumnId> keyColumns,
     List<ColumnId> nonKeyColumns,
-    ConnectionProvider dbProvider,
+    Connection db,
     DatabaseDialect dialect,
     SegmentQueue queue,
     SegmentCriteria criteria,
@@ -45,7 +46,7 @@ public class SegmentProducer extends SegmentWorker {
           tableId,
           keyColumns,
           nonKeyColumns,
-          dbProvider,
+          db,
           dialect,
           queue,
           criteria,

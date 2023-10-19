@@ -10,7 +10,7 @@ import java.util.concurrent.BlockingQueue;
 @RequiredArgsConstructor
 public abstract class SegmentQueue implements BlockingQueue<Segment> {
 
-  private final int size;
+  protected final int size;
   @Getter
   @Setter
   private boolean complete = false;

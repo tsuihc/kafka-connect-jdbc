@@ -107,6 +107,10 @@ abstract class TableQuerier implements Comparable<TableQuerier> {
     log.trace("Prepared statement created.");
   }
 
+  protected boolean endlessQuerying() {
+    return true;
+  }
+
   protected abstract ResultSet executeQuery() throws SQLException;
 
   public boolean next() throws SQLException {
