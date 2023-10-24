@@ -245,12 +245,32 @@ public class JdbcSourceTask extends SourceTask {
       if (mode.equals(JdbcSourceTaskConfig.MODE_BULK)) {
         tableQueue.add(
             new BulkTableQuerier(
-                dialect, 
-                queryMode, 
-                tableOrQuery, 
-                topicPrefix, 
+                dialect,
+                queryMode,
+                tableOrQuery,
+                topicPrefix,
                 suffix
             )
+        );
+      } else if (mode.equals(JdbcSourceTaskConfig.MODE_SEGMENT)) {
+        int segmentSize = config.getInt(JdbcSourceTaskConfig.SEGMENT_SIZE);
+        int waitedSegmentQueueSize = config.getInt(JdbcSourceTaskConfig.SEGMENT_WAITED_QUEUE_SIZE);
+        int queriedRsQueueSize = config.getInt(JdbcSourceTaskConfig.SEGMENT_QUERIED_RS_QUEUE_SIZE);
+        int concurrency = config.getInt(JdbcSourceTaskConfig.SEGMENT_CONCURRENCY);
+        String consumerType = config.getString(JdbcSourceTaskConfig.SEGMENT_CONSUMER_TYPE);
+        tableQueue.add(
+          new SegmentTableQuerier(
+            dialect,
+            queryMode,
+            tableOrQuery,
+            topicPrefix,
+            suffix,
+            segmentSize,
+            waitedSegmentQueueSize,
+            queriedRsQueueSize,
+            concurrency,
+            consumerType
+          )
         );
       } else if (mode.equals(JdbcSourceTaskConfig.MODE_INCREMENTING)) {
         tableQueue.add(

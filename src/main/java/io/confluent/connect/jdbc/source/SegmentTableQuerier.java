@@ -16,7 +16,6 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.errors.DataException;
 import org.apache.kafka.connect.source.SourceRecord;
-import org.codehaus.plexus.util.NioFiles;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -36,16 +35,14 @@ import java.util.concurrent.TimeUnit;
 public class SegmentTableQuerier extends TableQuerier {
 
   private final int segmentSize;
+  private final int waitedSegmentQueueSize;
+  private final int queriedRsQueueSize;
+  private final BlockingQueue<SegmentResult<ResultSet>> queriedRsQueue;
   private final int concurrency;
-  private final BlockingQueue<SegmentResult<ResultSet>> resultSets;
-  private final int segmentQueueSize;
-  private final String filter;
   private final String consumerType;
-  private final boolean orderSensitive;
 
   private ResultSet currentResultSet;
   private SegmentWorkerScheduler scheduler;
-
   private volatile boolean running = false;
   private SchemaMapping schemaMapping;
 
@@ -55,20 +52,17 @@ public class SegmentTableQuerier extends TableQuerier {
                              String topicPrefix,
                              String suffix,
                              int segmentSize,
+                             int waitedSegmentQueueSize,
+                             int queriedRsQueueSize,
                              int concurrency,
-                             int maxWaitedResultSetsNumber,
-                             int segmentQueueSize,
-                             String filter,
-                             String consumerType,
-                             boolean orderSensitive) {
+                             String consumerType) {
     super(dialect, mode, name, topicPrefix, suffix);
     this.segmentSize = segmentSize;
+    this.waitedSegmentQueueSize = waitedSegmentQueueSize;
+    this.queriedRsQueueSize = queriedRsQueueSize;
+    this.queriedRsQueue = new ArrayBlockingQueue<>(queriedRsQueueSize);
     this.concurrency = concurrency;
-    this.resultSets = new ArrayBlockingQueue<>(maxWaitedResultSetsNumber);
-    this.segmentQueueSize = segmentQueueSize;
-    this.filter = filter;
     this.consumerType = consumerType;
-    this.orderSensitive = orderSensitive;
   }
 
   @Override
@@ -98,13 +92,13 @@ public class SegmentTableQuerier extends TableQuerier {
     }));
     schemaMapping = SchemaMapping.create(tableId.tableName(), columnDefns, dialect);
     SegmentCriteria criteria = dialect.criteriaFor(keyColumns);
-    SegmentQueue queue = new MemorySegmentQueue(segmentQueueSize);
-    SegmentWorker slicer = new SegmentProducer(tableId + "-slicer-0", tableId, keyColumns, nonKeyColumns, null, dialect, queue, criteria, filter, segmentSize, Collections.emptyList());
+    SegmentQueue queue = new MemorySegmentQueue(waitedSegmentQueueSize);
+    SegmentWorker slicer = new SegmentProducer(tableId + "-slicer-0", tableId, keyColumns, nonKeyColumns, null, dialect, queue, criteria, suffix, segmentSize, Collections.emptyList());
     List<SegmentWorker> consumers = new ArrayList<>();
     for (int i = 0; i < concurrency; i++) {
       SegmentWorker consumer;
       if (consumerType.equalsIgnoreCase("query")) {
-        consumer = new SegmentQuerier(tableId + "-querier-" + i, tableId, keyColumns, nonKeyColumns, db, dialect, queue, criteria, filter, orderSensitive, resultSets);
+        consumer = new SegmentQuerier(tableId + "-querier-" + i, tableId, keyColumns, nonKeyColumns, db, dialect, queue, criteria, suffix, queriedRsQueue);
       } else {
         throw new UnsupportedOperationException("Consumer type [" + consumerType + "] is not supported yet");
       }
@@ -136,7 +130,7 @@ public class SegmentTableQuerier extends TableQuerier {
         throw new SQLException(scheduler.getException());
       }
       try {
-        SegmentResult<ResultSet> result = resultSets.poll(2, TimeUnit.SECONDS);
+        SegmentResult<ResultSet> result = queriedRsQueue.poll(2, TimeUnit.SECONDS);
         if (result != null) {
           currentResultSet = result.value();
           if (!currentResultSet.isBeforeFirst()) {
@@ -188,7 +182,7 @@ public class SegmentTableQuerier extends TableQuerier {
     this.running = false;
     this.scheduler.stop();
     this.closeResultSetQuietly(currentResultSet);
-    Iterator<SegmentResult<ResultSet>> it = this.resultSets.iterator();
+    Iterator<SegmentResult<ResultSet>> it = this.queriedRsQueue.iterator();
     while (it.hasNext()) {
       closeResultSetQuietly(it.next().value());
       it.remove();

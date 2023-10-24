@@ -14,8 +14,6 @@ import java.util.concurrent.TimeUnit;
 
 public abstract class SegmentConsumer extends SegmentWorker {
 
-  protected final boolean orderSensitive;
-
   public SegmentConsumer(
     String name,
     TableId tableId,
@@ -25,9 +23,7 @@ public abstract class SegmentConsumer extends SegmentWorker {
     DatabaseDialect dialect,
     SegmentQueue queue,
     SegmentCriteria criteria,
-    String filter,
-    boolean orderSensitive
-  ) {
+    String filter) {
     super(name,
           tableId,
           keyColumns,
@@ -38,7 +34,6 @@ public abstract class SegmentConsumer extends SegmentWorker {
           criteria,
           filter
     );
-    this.orderSensitive = orderSensitive;
   }
 
   @Override

@@ -175,6 +175,38 @@ public class JdbcSourceConnectorConfig extends AbstractConfig {
   public static final String MODE_TIMESTAMP = "timestamp";
   public static final String MODE_INCREMENTING = "incrementing";
   public static final String MODE_TIMESTAMP_INCREMENTING = "timestamp+incrementing";
+  public static final String MODE_SEGMENT = "segment";
+
+  public static final String SEGMENT_SIZE = "segment.size";
+  public static final String SEGMENT_SIZE_DOC =
+    "The size of each segment.";
+  public static final Integer SEGMENT_SIZE_DEFAULT = 200;
+  public static final String SEGMENT_SIZE_DISPLAY = "Segment Size";
+
+  public static final String SEGMENT_WAITED_QUEUE_SIZE = "segment.waited.queue.size";
+  public static final String SEGMENT_WAITED_QUEUE_SIZE_DOC =
+    "The size of the queue to hold waited segments.";
+  public static final Integer SEGMENT_WAITED_QUEUE_SIZE_DEFAULT = 200;
+  public static final String SEGMENT_WAITED_QUEUE_SIZE_DISPLAY = "Segment Waited Queue Size";
+
+  public static final String SEGMENT_QUERIED_RS_QUEUE_SIZE = "segment.queried.rs.queue.size";
+  public static final String SEGMENT_QUERIED_RS_QUEUE_SIZE_DOC =
+    "The size of the queue to hold queried result sets.";
+  public static final Integer SEGMENT_QUERIED_RS_QUEUE_SIZE_DEFAULT = 10;
+  public static final String SEGMENT_QUERIED_RS_QUEUE_SIZE_DISPLAY = "Segment Waited ResultSets Queue Size";
+
+  public static final String SEGMENT_CONCURRENCY = "segment.concurrency";
+  public static final String SEGMENT_CONCURRENCY_DOC =
+    "The number of threads to deal waited segments.";
+  public static final Integer SEGMENT_CONCURRENCY_DEFAULT = 5;
+  public static final String SEGMENT_CONCURRENCY_DISPLAY = "Segment Concurrency";
+
+  public static final String SEGMENT_CONSUMER_TYPE = "segment.consumer.type";
+  public static final String SEGMENT_CONSUMER_TYPE_DOC =
+    "The type of segment consumer.";
+  public static final String SEGMENT_CONSUMER_TYPE_DEFAULT = "query";
+  public static final String SEGMENT_CONSUMER_TYPE_DISPLAY = "Segment Consumer Type";
+
 
   public static final String INCREMENTING_COLUMN_NAME_CONFIG = "incrementing.column.name";
   private static final String INCREMENTING_COLUMN_NAME_DOC =

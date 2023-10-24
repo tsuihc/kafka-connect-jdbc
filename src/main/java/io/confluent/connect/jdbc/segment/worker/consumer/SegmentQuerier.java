@@ -35,7 +35,6 @@ public class SegmentQuerier extends SegmentConsumer {
     SegmentQueue queue,
     SegmentCriteria criteria,
     String filter,
-    boolean orderSensitive,
     BlockingQueue<SegmentResult<ResultSet>> results
   ) {
     super(name,
@@ -46,8 +45,7 @@ public class SegmentQuerier extends SegmentConsumer {
           dialect,
           queue,
           criteria,
-          filter,
-          orderSensitive);
+          filter);
     this.results = results;
   }
 
@@ -59,11 +57,7 @@ public class SegmentQuerier extends SegmentConsumer {
       criteria.setQueryParameters(stmt, segment.from, segment.to);
       log.debug("Selector on segment[{}]", segment);
       SegmentResult<ResultSet> result = new SegmentResult<>(segment, stmt.executeQuery());
-      if (orderSensitive) {
-        throw new UnsupportedOperationException("SegmentQuerier hasn't supported order-sensitive feature!");
-      } else {
-        results.put(result);
-      }
+      results.put(result);
       log.debug("Selector successfully retrieve resultSet");
     }
   }
