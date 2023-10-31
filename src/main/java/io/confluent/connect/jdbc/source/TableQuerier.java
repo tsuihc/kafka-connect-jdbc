@@ -36,7 +36,7 @@ import io.confluent.connect.jdbc.util.TableId;
 abstract class TableQuerier implements Comparable<TableQuerier> {
   public enum QueryMode {
     TABLE, // Copying whole tables, with queries constructed automatically
-    QUERY // User-specified query
+    QUERY, // User-specified query
   }
 
   private final Logger log = LoggerFactory.getLogger(TableQuerier.class);

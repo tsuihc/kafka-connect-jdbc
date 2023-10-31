@@ -18,16 +18,9 @@ package io.confluent.connect.jdbc.source;
 import java.sql.Connection;
 import java.sql.Timestamp;
 import java.time.ZoneId;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.TimeZone;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import io.confluent.connect.jdbc.dialect.DatabaseDialect;
 import io.confluent.connect.jdbc.dialect.DatabaseDialects;
 import io.confluent.connect.jdbc.util.DatabaseDialectRecommender;
@@ -175,6 +168,19 @@ public class JdbcSourceConnectorConfig extends AbstractConfig {
   public static final String MODE_TIMESTAMP = "timestamp";
   public static final String MODE_INCREMENTING = "incrementing";
   public static final String MODE_TIMESTAMP_INCREMENTING = "timestamp+incrementing";
+  public static final String MODE_PAGINATION = "pagination";
+
+  public static final String PAGINATION_PAGE_SIZE_CONFIG = "pagination.page.size";
+  private static final String PAGINATION_PAGE_SIZE_DOC =
+    "The size of each page.";
+  public static final Integer PAGINATION_PAGE_SIZE_DEFAULT = 200;
+  private static final String PAGINATION_PAGE_SIZE_DISPLAY = "Pagination Page Size";
+
+  public static final String PAGINATION_KEY_SET_CONFIG = "pagination.key.set";
+  private static final String PAGINATION_KEY_SET_DOC =
+    "The key set to split the pages.";
+  public static final List<String> PAGINATION_KEY_SET_DEFAULT = new ArrayList<>();
+  private static final String PAGINATION_KEY_SET_DISPLAY = "Pagination Key Set";
 
   public static final String INCREMENTING_COLUMN_NAME_CONFIG = "incrementing.column.name";
   private static final String INCREMENTING_COLUMN_NAME_DOC =
@@ -560,7 +566,8 @@ public class JdbcSourceConnectorConfig extends AbstractConfig {
             MODE_BULK,
             MODE_TIMESTAMP,
             MODE_INCREMENTING,
-            MODE_TIMESTAMP_INCREMENTING
+            MODE_TIMESTAMP_INCREMENTING,
+            MODE_PAGINATION
         ),
         Importance.HIGH,
         MODE_DOC,
@@ -573,6 +580,28 @@ public class JdbcSourceConnectorConfig extends AbstractConfig {
             TIMESTAMP_COLUMN_NAME_CONFIG,
             VALIDATE_NON_NULL_CONFIG
         )
+    ).define(
+        PAGINATION_PAGE_SIZE_CONFIG,
+        Type.INT,
+        PAGINATION_PAGE_SIZE_DEFAULT,
+        Importance.MEDIUM,
+        PAGINATION_PAGE_SIZE_DOC,
+        MODE_GROUP,
+        ++orderInGroup,
+        Width.MEDIUM,
+        PAGINATION_PAGE_SIZE_DISPLAY,
+        MODE_DEPENDENTS_RECOMMENDER
+    ).define(
+        PAGINATION_KEY_SET_CONFIG,
+        Type.LIST,
+        PAGINATION_KEY_SET_DEFAULT,
+        Importance.MEDIUM,
+        PAGINATION_KEY_SET_DOC,
+        MODE_GROUP,
+        ++orderInGroup,
+        Width.MEDIUM,
+        PAGINATION_KEY_SET_DISPLAY,
+        MODE_DEPENDENTS_RECOMMENDER
     ).define(
         INCREMENTING_COLUMN_NAME_CONFIG,
         Type.STRING,
@@ -873,6 +902,8 @@ public class JdbcSourceConnectorConfig extends AbstractConfig {
       switch (mode) {
         case MODE_BULK:
           return false;
+        case MODE_PAGINATION:
+          return name.equals(PAGINATION_PAGE_SIZE_CONFIG) || name.equals(PAGINATION_KEY_SET_CONFIG);
         case MODE_TIMESTAMP:
           return name.equals(TIMESTAMP_COLUMN_NAME_CONFIG) || name.equals(VALIDATE_NON_NULL_CONFIG);
         case MODE_INCREMENTING:
@@ -992,8 +1023,6 @@ public class JdbcSourceConnectorConfig extends AbstractConfig {
           return Connection.TRANSACTION_REPEATABLE_READ;
         case SERIALIZABLE:
           return Connection.TRANSACTION_SERIALIZABLE;
-        case SQL_SERVER_SNAPSHOT:
-          return SQLServerConnection.TRANSACTION_SNAPSHOT;
         default:
           return -1;
       }

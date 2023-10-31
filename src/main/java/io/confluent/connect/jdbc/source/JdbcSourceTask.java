@@ -252,6 +252,21 @@ public class JdbcSourceTask extends SourceTask {
                 suffix
             )
         );
+      } else if (mode.equals(JdbcSourceTaskConfig.MODE_PAGINATION)) {
+        int pageSize = config.getInt(JdbcSourceTaskConfig.PAGINATION_PAGE_SIZE_CONFIG);
+        List<String> keySet = config.getList(JdbcSourceTaskConfig.PAGINATION_KEY_SET_CONFIG);
+
+        tableQueue.add(
+          new PaginationTableQuerier(
+            dialect,
+            queryMode,
+            tableOrQuery,
+            topicPrefix,
+            suffix,
+            pageSize,
+            keySet
+          )
+        );
       } else if (mode.equals(JdbcSourceTaskConfig.MODE_INCREMENTING)) {
         tableQueue.add(
             new TimestampIncrementingTableQuerier(
