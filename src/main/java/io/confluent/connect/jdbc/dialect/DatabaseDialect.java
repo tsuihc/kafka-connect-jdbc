@@ -324,6 +324,22 @@ public interface DatabaseDialect extends ConnectionProvider {
   void applyDdlStatements(Connection connection, List<String> statements) throws SQLException;
 
   /**
+   * Build the SELECT prepared statement expression for the given table and its columns.
+   *
+   * @param table         the identifier of the table; may not be null
+   * @param fields        the identifiers of the columns to select; may not be null
+   *                      but may be empty, which means select all fields
+   * @param keyColumns    the identifiers of the other columns in the table; may not be null but may
+   *                      be empty
+   * @return the SELECT statement; may not be null
+   */
+  String buildSelectStatement(
+    TableId table,
+    Collection<ColumnId> fields,
+    Collection<ColumnId> keyColumns
+  );
+
+  /**
    * Build the INSERT prepared statement expression for the given table and its columns.
    *
    * <p>This method is only called by the default implementation of

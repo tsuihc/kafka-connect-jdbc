@@ -111,7 +111,7 @@ public final class SchemaMapping {
    *
    * @return the array of {@link FieldSetter} instances; never null and never empty
    */
-  List<FieldSetter> fieldSetters() {
+  public List<FieldSetter> fieldSetters() {
     return fieldSetters;
   }
 
@@ -152,7 +152,7 @@ public final class SchemaMapping {
      * @throws SQLException if there is an error accessing the result set
      * @throws IOException  if there is an error accessing a streaming value from the result set
      */
-    void setField(
+    public void setField(
         Struct struct,
         ResultSet resultSet
     ) throws SQLException, IOException {

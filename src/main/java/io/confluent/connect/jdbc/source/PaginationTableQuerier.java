@@ -29,7 +29,8 @@ public class PaginationTableQuerier extends TableQuerier {
 
   private List<Object> start = new ArrayList<>();
   private List<Object> end = new ArrayList<>();
-  private boolean isLastPage = false;
+
+  private static final String DUMMY_QUERY =  "SELECT 1 WHERE 1 != 1";
 
   public PaginationTableQuerier(DatabaseDialect dialect,
                                 QueryMode mode,
@@ -47,8 +48,10 @@ public class PaginationTableQuerier extends TableQuerier {
   @Override
   protected void createPreparedStatement(Connection db)
   throws SQLException {
-    this.queryNextPagination();
-    log.info("GotThePage: [{}], [{}]", start, end);
+    if (!this.queryNextPagination()) {
+      stmt = dialect.createPreparedStatement(db, DUMMY_QUERY);
+      return;
+    }
 
     ExpressionBuilder builder = dialect.expressionBuilder();
     builder.append("SELECT * FROM ").append(tableId);
@@ -63,48 +66,56 @@ public class PaginationTableQuerier extends TableQuerier {
     criteria.setQueryParameters(stmt, start, end);
   }
 
-  private void queryNextPagination()
+  private boolean queryNextPagination()
   throws SQLException {
     ExpressionBuilder builder = dialect.expressionBuilder();
-    builder.append("SELECT ").appendList().of(keyColumns).append(" FROM ").append(tableId);
-    criteria.whereClause(builder, start, PaginationCriteria.Comparator.LARGER, null, null, null);
+    builder.append("(SELECT ").append(" 'page' as datum, ");
+    builder.appendList().of(keyColumns);
+    builder.append(" FROM ").append(tableId);
+    criteria.whereClause(builder, end, PaginationCriteria.Comparator.LARGER, null, null, null);
     criteria.orderClause(builder, PaginationCriteria.Order.ASC);
     criteria.limitClause(builder, pageSize - 1, 1);
+    builder.append(")");
+    builder.append(" UNION ");
+    builder.append("(SELECT").append(" 'end' as datum, ");
+    builder.appendList().of(keyColumns);
+    builder.append(" FROM ").append(tableId);
+    criteria.orderClause(builder, PaginationCriteria.Order.DESC);
+    criteria.limitClause(builder, 1);
+    builder.append(")");
 
     String queryStr = builder.toString();
 
     log.info("{} prepared SQL to query next page: {}", this, queryStr);
     try (PreparedStatement pstmt = dialect.createPreparedStatement(db, queryStr)) {
-      criteria.setQueryParameters(pstmt, start);
+      criteria.setQueryParameters(pstmt, end);
       try (ResultSet rs = pstmt.executeQuery()) {
-        if (rs.next()) {
-          List<Object> end = new ArrayList<>();
-          for (ColumnId keyColumn : keyColumns) {
-            end.add(rs.getObject(keyColumn.name()));
-          }
-          if (!isLastPage) {
-
-          }
-
-        } else {
-
+        if (!rs.next()) {
+          // the result set is empty, which means the table is empty.
+          log.info("{} got an empty table {}", this, tableId);
+          return false;
         }
 
-
-//        if (rs.next()) {
-//          List<Object> end = new ArrayList<>();
-//          for (ColumnId keyColumn : keyColumns) {
-//            end.add(rs.getObject(keyColumn.name()));
-//          }
-//          this.start = this.end;
-//          this.end = end;
-//        } else {
-//          // Here comes to the last page,
-//          if (!this.end.isEmpty()) {
-//            this.start = this.end;
-//            this.end = new ArrayList<>();
-//          }
-//        }
+        List<Object> datum = new ArrayList<>();
+        for (ColumnId keyColumn : keyColumns) {
+          datum.add(rs.getObject(keyColumn.name()));
+        }
+        if (rs.getString("datum").equals("page")) {
+          // there is a pagination
+          this.start = this.end;
+          this.end = datum;
+        } else if (rs.getString("datum").equals("end")) {
+          // has seeked to the end of the table
+          // it is determined whether the last page has been fetched yet.
+          boolean fetched = this.end.equals(datum);
+          this.start = this.end;
+          if (!fetched) {
+            this.end = datum;
+          }
+        } else {
+          throw new RuntimeException("Unknown datum mark: " + rs.getString("datum") + ", which is a program error!");
+        }
+        return true;
       }
     }
   }

@@ -30,7 +30,11 @@
             <artifactId>connect-runtime</artifactId>
             <scope>provided</scope>
         </dependency>
-        <!-- JDBC drivers, only included in runtime so they get packaged -->
+        <dependency>
+            <groupId>com.oppo.dts</groupId>
+            <artifactId>kafka-connect-transforms-select</artifactId>
+        </dependency>
+        <!-- JDBC drivers, only included in runtime, so they get packaged -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>

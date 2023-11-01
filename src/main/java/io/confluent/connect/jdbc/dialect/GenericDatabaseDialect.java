@@ -1249,6 +1249,28 @@ public class GenericDatabaseDialect implements DatabaseDialect {
   }
 
   @Override
+  public String buildSelectStatement(TableId table,
+                                     Collection<ColumnId> fields,
+                                     Collection<ColumnId> keyColumns) {
+    ExpressionBuilder builder = expressionBuilder();
+    builder.append("select ");
+    if (fields.isEmpty()) {
+      builder.append("*");
+    } else {
+      builder.appendList()
+             .delimitedBy(",")
+             .of(fields);
+    }
+    builder.append(" from ");
+    builder.append(table);
+    builder.append(" where ");
+    builder.appendList()
+           .delimitedBy(" and ")
+           .transformedBy(ExpressionBuilder.columnNamesWith(" = ?"))
+           .of(keyColumns);
+    return builder.toString();
+  }
+  @Override
   public ColumnConverter createColumnConverter(
       ColumnMapping mapping
   ) {

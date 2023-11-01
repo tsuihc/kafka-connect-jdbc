@@ -92,6 +92,13 @@ public class PaginationCriteria {
 
   public void limitClause(
     ExpressionBuilder builder,
+    int limit
+  ) {
+    builder.append(" LIMIT ").append(limit);
+  }
+
+  public void limitClause(
+    ExpressionBuilder builder,
     int offset,
     int limit
   ) {
